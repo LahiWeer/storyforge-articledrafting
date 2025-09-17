@@ -12,7 +12,7 @@ export const Navigation = ({ currentSection, onNavigate }: NavigationProps) => {
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
         <div className="flex items-center space-x-2">
           <PenTool className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-accent bg-clip-text text-transparent">
+          <span className="text-xl font-bold text-primary">
             StoryForge
           </span>
         </div>
