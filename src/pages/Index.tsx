@@ -41,13 +41,6 @@ const Index = () => {
               >
                 Start Creating Stories
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-lg px-8 py-4 border-white text-white hover:bg-white/10"
-              >
-                Watch Demo
-              </Button>
             </div>
           </div>
         </div>
