@@ -2,18 +2,35 @@ import heroImage from "@/assets/hero-editorial.jpg";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StoryGenerator } from "@/components/StoryGenerator";
+import { Navigation } from "@/components/Navigation";
 import { useState } from "react";
 import { FileText, Users, Shield, Zap } from "lucide-react";
 
 const Index = () => {
   const [showGenerator, setShowGenerator] = useState(false);
 
+  const handleNavigation = (section: 'home' | 'generator') => {
+    setShowGenerator(section === 'generator');
+  };
+
   if (showGenerator) {
-    return <StoryGenerator />;
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation 
+          currentSection="generator" 
+          onNavigate={handleNavigation} 
+        />
+        <StoryGenerator />
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <Navigation 
+        currentSection="home" 
+        onNavigate={handleNavigation} 
+      />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-hero">
         <div className="absolute inset-0 bg-black/20"></div>
