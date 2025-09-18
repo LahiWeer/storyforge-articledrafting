@@ -428,6 +428,127 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
 };
 
 /**
+ * Use Claude 4 Sonnet to generate engaging headlines
+ */
+export const generateHeadlineWithClaudeSonnet = async (
+  keyPoints: KeyPoint[],
+  userFocus: string,
+  storyDirection: StoryDirection,
+  sources: Source[]
+): Promise<string> => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  
+  const prompt = `You are an expert headline writer for major publications. Generate a compelling, engaging headline for an article based on the provided information.
+
+USER'S ARTICLE FOCUS & GOALS:
+"${userFocus}"
+
+STORY DIRECTION:
+- Angle: ${storyDirection.angle}
+- Tone: ${storyDirection.tone}
+- Target Length: ${storyDirection.length}
+
+KEY POINTS TO FEATURE:
+${verifiedKeyPoints.slice(0, 5).map((point, index) => 
+  `${index + 1}. "${point.text}"`
+).join('\n')}
+
+SOURCES AVAILABLE:
+${sources.map((source, index) => 
+  `${index + 1}. ${source.title}`
+).join('\n')}
+
+HEADLINE REQUIREMENTS:
+1. Must be clear, specific, and attention-grabbing
+2. Should reflect both the user's focus and chosen story angle
+3. Keep it concise (under 80 characters for optimal readability)
+4. Use active voice and compelling language
+5. Connect to the most important key points
+6. Match the ${storyDirection.tone} tone
+7. Align with the ${storyDirection.angle} angle approach
+
+ANGLE GUIDELINES:
+- Success Story: Focus on achievements, growth, results
+- Challenges Overcome: Highlight transformation, resilience, solutions
+- Innovation Focus: Emphasize breakthrough, technology, future impact
+- Industry Analysis: Present insights, trends, implications
+
+Return only the headline text (no quotes, no JSON formatting).`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 200,
+        temperature: 0.7,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const headline = data.content[0].text.trim();
+    
+    // Clean up any extra quotes or formatting
+    return headline.replace(/^["']|["']$/g, '').trim();
+  } catch (error) {
+    console.error('Claude 4 Sonnet headline generation failed:', error);
+    
+    // Fallback headline generation
+    return generateFallbackHeadline(keyPoints, userFocus, storyDirection);
+  }
+};
+
+/**
+ * Generate fallback headline when AI fails
+ */
+const generateFallbackHeadline = (
+  keyPoints: KeyPoint[],
+  userFocus: string,
+  storyDirection: StoryDirection
+): string => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  const firstKeyPoint = verifiedKeyPoints[0];
+  
+  if (!firstKeyPoint) {
+    return `${userFocus}: A ${storyDirection.angle.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+  }
+  
+  // Extract main subject from key points or focus
+  const focusWords = userFocus.toLowerCase().split(/\s+/);
+  const importantWords = focusWords.filter(word => 
+    word.length > 3 && !['with', 'from', 'that', 'this', 'they', 'have', 'been'].includes(word)
+  );
+  
+  const mainSubject = importantWords[0] || 'Business';
+  
+  // Generate headline based on story angle
+  const angleTemplates = {
+    'success-story': `How ${mainSubject} Achieved Remarkable Growth`,
+    'challenges-overcome': `${mainSubject} Turns Obstacles Into Opportunities`,
+    'innovation-focus': `${mainSubject} Breaks New Ground in Innovation`,
+    'industry-analysis': `${mainSubject} Insights: What the Data Reveals`
+  };
+  
+  return angleTemplates[storyDirection.angle as keyof typeof angleTemplates] || 
+         `${mainSubject}: Key Insights and Developments`;
+};
+
+/**
  * Use Claude 4 Sonnet to generate a complete draft article
  */
 const generateArticleWithClaudeSonnet = async (
@@ -440,10 +561,21 @@ const generateArticleWithClaudeSonnet = async (
 ): Promise<DraftResult> => {
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
   
+  // First, generate the headline using dedicated function
+  const headline = await generateHeadlineWithClaudeSonnet(
+    keyPoints,
+    userFocus,
+    storyDirection,
+    sources
+  );
+  
   const prompt = `You are a professional journalist and content strategist. Generate a complete, publication-ready article based on the provided information.
 
 USER'S ARTICLE FOCUS & GOALS:
 "${userFocus}"
+
+HEADLINE TO USE:
+"${headline}"
 
 STORY DIRECTION:
 - Angle: ${storyDirection.angle}
@@ -466,21 +598,19 @@ ${sources.map((source, index) =>
 
 ARTICLE STRUCTURE REQUIREMENTS:
 
-1. HEADLINE: Create an engaging, specific headline that reflects both the focus and angle
-
-2. INTRODUCTION (1-2 paragraphs):
+1. INTRODUCTION (1-2 paragraphs):
    - Set context and introduce the main subject
    - Explain why the topic matters to readers
    - Establish the chosen story angle clearly
 
-3. BODY (Thematic sections):
+2. BODY (Thematic sections):
    - Group related key points into meaningful themes
    - Develop each theme into full paragraphs with explanation and context
    - Use smooth transitions for cohesive narrative flow
    - Incorporate source references naturally
    - Include 1-2 direct quotes from the transcript authentically
 
-4. CONCLUSION (1-2 paragraphs):
+3. CONCLUSION (1-2 paragraphs):
    - Provide forward-looking commentary on significance
    - Highlight implications for future outlook
    - Connect back to broader context without repeating earlier points
@@ -495,7 +625,6 @@ WRITING GUIDELINES:
 
 FORMAT YOUR RESPONSE AS JSON:
 {
-  "headline": "Engaging headline that captures focus and angle",
   "draft": "Complete article content with proper paragraph breaks (use \\n\\n for paragraph separation)",
   "sourceMapping": {
     "paragraph_1": ["Source Name 1", "Source Name 2"],
@@ -569,6 +698,14 @@ export const generateArticleWithAI = async (
   const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
   
   try {
+    // First, generate the headline using dedicated Claude 4 Sonnet function
+    const headline = await generateHeadlineWithClaudeSonnet(
+      keyPoints,
+      userFocus,
+      storyDirection,
+      sources
+    );
+    
     // Use Claude 4 Sonnet for actual article generation
     const response = await generateArticleWithClaudeSonnet(
       verifiedKeyPoints,
@@ -578,6 +715,10 @@ export const generateArticleWithAI = async (
       userFocus,
       quotes
     );
+    
+    // Ensure headline is included in the result
+    response.headline = headline;
+    
     return response;
   } catch (error) {
     console.error('AI article generation failed:', error);

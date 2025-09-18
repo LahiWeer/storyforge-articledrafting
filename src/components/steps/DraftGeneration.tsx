@@ -33,7 +33,7 @@ interface StoryData {
 
 interface DraftGenerationProps {
   storyData: StoryData;
-  onDraftGenerated: (draft: string, sourceMapping: Record<string, string[]>) => void;
+  onDraftGenerated: (draft: string, sourceMapping: Record<string, string[]>, headline?: string) => void;
 }
 
 export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGenerationProps) => {
@@ -77,7 +77,7 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
         'User-focused article' // You might want to pass the actual user focus from story data
       );
 
-      onDraftGenerated(result.draft, result.sourceMapping);
+      onDraftGenerated(result.draft, result.sourceMapping, result.headline);
       setIsGenerating(false);
       setCurrentStep('');
       
@@ -92,7 +92,7 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
       const mockDraft = generateMockDraft(storyData);
       const mockSourceMapping = generateMockSourceMapping(storyData);
 
-      onDraftGenerated(mockDraft, mockSourceMapping);
+      onDraftGenerated(mockDraft, mockSourceMapping, 'Generated Article: Key Insights and Analysis');
       setIsGenerating(false);
       setCurrentStep('');
       

@@ -33,7 +33,8 @@ interface StoryData {
   };
   draft: string;
   sourceMapping: Record<string, string[]>;
-  articleFocus?: string; // Added to track article focus across steps
+  articleFocus?: string;
+  headline?: string; // Added headline field for Claude 4 Sonnet generated headlines
 }
 
 const steps = [
@@ -119,8 +120,8 @@ export const StoryGenerator = () => {
         return (
           <DraftGeneration
             storyData={storyData}
-            onDraftGenerated={(draft, sourceMapping) => 
-              updateStoryData({ draft, sourceMapping })
+            onDraftGenerated={(draft, sourceMapping, headline) => 
+              updateStoryData({ draft, sourceMapping, headline })
             }
           />
         );
