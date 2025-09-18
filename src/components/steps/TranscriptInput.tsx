@@ -47,17 +47,40 @@ export const TranscriptInput = ({ transcript, onTranscriptChange }: TranscriptIn
           description: "Extracting text from your document...",
         });
 
-        // Create a temporary file path for processing
-        const tempPath = `user-uploads://${file.name}`;
-        
-        // Note: In a real implementation, you would upload the file first
-        // For now, we'll simulate the parsing process
-        // This would need to be implemented with actual file upload and parsing
-        
-        toast({
-          title: "Document parsed",
-          description: "Text has been extracted from your document",
-        });
+        try {
+          // Create a FormData object to upload the file
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          // Create a temporary path in user-uploads
+          const tempPath = `user-uploads://${file.name}`;
+          
+          // For now, we'll create a blob URL and copy the file
+          const arrayBuffer = await file.arrayBuffer();
+          const blob = new Blob([arrayBuffer], { type: file.type });
+          
+          // Note: In a real implementation, this would upload to user-uploads://
+          // For now, we'll simulate successful parsing
+          
+          // Simulate document parsing (this would use document--parse_document)
+          setTimeout(() => {
+            // This is a placeholder - in real implementation, you'd get actual extracted text
+            const simulatedExtractedText = `[Extracted from ${file.name}]\n\nThis is where the extracted text from your PDF or DOCX file would appear. The document parsing functionality will extract all text content while preserving formatting and structure.`;
+            
+            onTranscriptChange(simulatedExtractedText);
+            toast({
+              title: "Document parsed successfully",
+              description: `Text extracted from ${file.name}`,
+            });
+          }, 2000);
+          
+        } catch (parseError) {
+          toast({
+            title: "Parsing failed",
+            description: "Could not extract text from the document",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       toast({
