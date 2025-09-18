@@ -11,6 +11,7 @@ interface StoryDirectionData {
   tone: string;
   angle: string;
   length: string;
+  articleFocus?: string;
   customPrompt?: string;
   customTone?: string;
   customAngle?: string;
@@ -80,12 +81,37 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
           Set Your Story Direction
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Define the tone, angle, and approach for your article. This will guide how your 
-          key points are woven into a compelling narrative.
+          Define your article's focus, tone, angle, and approach. This will guide how your 
+          key points are woven into a compelling narrative with a creative headline.
         </p>
       </div>
 
       <div className="grid gap-8">
+        {/* Article Focus */}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-5 h-5 text-primary" />
+            <h3 className="text-xl font-semibold">Article Focus & Goals</h3>
+          </div>
+          <p className="text-muted-foreground mb-6">
+            Describe what you want this article to accomplish and its main focus. This will help generate a compelling headline and guide the content direction.
+          </p>
+          
+          <div className="space-y-2">
+            <Label htmlFor="article-focus">What is the main focus and goal of your article?</Label>
+            <Textarea
+              id="article-focus"
+              value={direction.articleFocus || ''}
+              onChange={(e) => updateDirection({ articleFocus: e.target.value })}
+              placeholder="e.g., 'Showcase how this startup overcame major challenges to achieve success', 'Highlight innovative technology solutions that are transforming the industry', 'Tell the story of leadership transformation during crisis'..."
+              className="min-h-[120px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              Be specific about your goals - this helps create a more targeted headline and article structure.
+            </p>
+          </div>
+        </Card>
+
         {/* Tone Selection */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
@@ -246,6 +272,9 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
         <Card className="p-6 bg-gradient-secondary border-secondary">
           <h4 className="font-semibold mb-2 text-secondary-foreground">Story Direction Summary</h4>
           <div className="space-y-1 text-sm text-secondary-foreground">
+            {direction.articleFocus && (
+              <p><strong>Article Focus:</strong> {direction.articleFocus}</p>
+            )}
             <p><strong>Tone:</strong> {toneOptions.find(t => t.value === direction.tone)?.label}</p>
             {direction.customTone && direction.tone === 'other' && (
               <p><strong>Custom Tones:</strong> {direction.customTone}</p>

@@ -29,7 +29,10 @@ interface StoryData {
     tone: string;
     angle: string;
     length: string;
+    articleFocus?: string;
     customPrompt?: string;
+    customTone?: string;
+    customAngle?: string;
   };
   draft: string;
   sourceMapping: Record<string, string[]>;
