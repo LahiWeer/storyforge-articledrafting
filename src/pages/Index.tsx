@@ -21,30 +21,30 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-hero">
         <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute inset-0 bg-cover bg-center opacity-60" style={{
+        <div className="absolute inset-0 bg-cover bg-center opacity-65" style={{
         backgroundImage: `url(${heroImage})`
       }} />
         <div className="relative container mx-auto px-6 py-24 lg:py-32">
-  <div className="max-w-4xl mx-auto text-center text-white">
-    <h1 className="text-5xl lg:text-7xl font-heading font-bold mb-10 leading-tight" style={{
-      color: '#d2c319'
-    }}>
-      <span className="block pb-2 sm:pb-4">Transform Interviews into</span>
-      <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-[8E44AD] text-[##1976D2]">
-        Story-Driven Articles
-      </span>
-    </h1>
-    <p className="text-xl lg:text-2xl mb-8 text-white/90 max-w-3xl mx-auto font-editorial">
-      Our AI-powered platform turns raw interview transcripts into compelling,
-      fact-checked stories with full source verification and human oversight.
-    </p>
-    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-      <Button size="lg" className="text-lg px-8 py-4 bg-[#1b3b6f] text-white hover:bg-[#00798c]" onClick={() => setShowGenerator(true)}>
-        Start Creating Stories
-      </Button>
-    </div>
-  </div>
-</div>
+          <div className="max-w-4xl mx-auto text-center text-white">
+            <h1 className="text-5xl lg:text-7xl font-heading font-bold mb-10 leading-tight " style={{
+            color: '#1976D2'
+          }}>
+              Transform Interviews into 
+              <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-[8E44AD] text-[#1976d2]">
+                Story-Driven Articles
+              </span>
+            </h1>
+            <p className="text-xl lg:text-2xl mb-8 text-white/90 max-w-3xl mx-auto font-editorial">
+              Our AI-powered platform turns raw interview transcripts into compelling, 
+              fact-checked stories with full source verification and human oversight.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" className="text-lg px-8 py-4 bg-[#1b3b6f] text-white hover:bg-[#00798c]" onClick={() => setShowGenerator(true)}>
+                 Start Creating Stories
+              </Button>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Features Section */}
