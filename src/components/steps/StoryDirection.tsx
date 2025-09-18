@@ -27,6 +27,7 @@ const toneOptions = [
   { value: 'analytical', label: 'Analytical', description: 'Data-driven, objective analysis' },
   { value: 'narrative', label: 'Narrative', description: 'Story-driven, engaging style' },
   { value: 'investigative', label: 'Investigative', description: 'In-depth, questioning approach' },
+  { value: 'other', label: 'Other', description: 'Add one or more custom tones to combine different writing styles' },
 ];
 
 const angleOptions = [
@@ -36,6 +37,7 @@ const angleOptions = [
   { value: 'human-impact', label: 'Human Impact', description: 'Center on people and personal stories' },
   { value: 'market-analysis', label: 'Market Analysis', description: 'Business and industry perspective' },
   { value: 'behind-scenes', label: 'Behind the Scenes', description: 'Inside look at processes and decisions' },
+  { value: 'other', label: 'Other', description: 'description: 'Provide your own unique story angle' },
 ];
 
 const lengthOptions = [
