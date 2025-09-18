@@ -33,6 +33,7 @@ interface StoryData {
   };
   draft: string;
   sourceMapping: Record<string, string[]>;
+  articleFocus?: string; // Added to track article focus across steps
 }
 
 const steps = [
@@ -94,6 +95,7 @@ export const StoryGenerator = () => {
           <SourcesAttachment
             sources={storyData.sources}
             onSourcesChange={(sources) => updateStoryData({ sources })}
+            articleFocus={storyData.articleFocus}
           />
         );
       case 3:
@@ -103,6 +105,7 @@ export const StoryGenerator = () => {
             sources={storyData.sources}
             keyPoints={storyData.keyPoints}
             onKeyPointsChange={(keyPoints) => updateStoryData({ keyPoints })}
+            onArticleFocusChange={(articleFocus) => updateStoryData({ articleFocus })}
           />
         );
       case 4:

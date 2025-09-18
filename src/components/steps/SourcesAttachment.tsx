@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Link, Video, Upload, X, AlertCircle, Type } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { simulateWebContentExtraction, processWebContentForFocus, extractFocusKeywords } from '@/utils/contentExtraction';
 
 interface Source {
   id: string;
@@ -17,9 +18,10 @@ interface Source {
 interface SourcesAttachmentProps {
   sources: Source[];
   onSourcesChange: (sources: Source[]) => void;
+  articleFocus?: string; // Optional article focus for content filtering
 }
 
-export const SourcesAttachment = ({ sources, onSourcesChange }: SourcesAttachmentProps) => {
+export const SourcesAttachment = ({ sources, onSourcesChange, articleFocus }: SourcesAttachmentProps) => {
   const [urlInput, setUrlInput] = useState('');
   const [textContent, setTextContent] = useState('');
   const [textTitle, setTextTitle] = useState('');
@@ -72,19 +74,63 @@ export const SourcesAttachment = ({ sources, onSourcesChange }: SourcesAttachmen
     
     const isYoutube = urlInput.includes('youtube.com') || urlInput.includes('youtu.be');
     
-    // Simulate URL processing
+    // Simulate URL processing with focus-based content extraction
     setTimeout(() => {
-      addSource({
-        type: isYoutube ? 'youtube' : 'url',
-        title: `Source from ${new URL(urlInput).hostname}`,
-        content: `Content extracted from ${urlInput}`,
-      });
-      setUrlInput('');
-      setIsProcessing(false);
-      toast({
-        title: "Source added",
-        description: "Web content has been processed",
-      });
+      try {
+        const hostname = new URL(urlInput).hostname;
+        const title = `Source from ${hostname}`;
+        
+        // Extract raw web content
+        const rawContent = simulateWebContentExtraction(urlInput);
+        
+        let processedContent = rawContent;
+        let contentDescription = "Web content has been processed";
+        
+        // If article focus is provided, filter content based on focus keywords
+        if (articleFocus && articleFocus.trim()) {
+          const keywords = extractFocusKeywords(articleFocus);
+          const { extractedSentences, summary } = processWebContentForFocus(
+            rawContent, 
+            title, 
+            keywords, 
+            5 // Minimum 5 sentences
+          );
+          
+          // Use only the focus-relevant sentences
+          processedContent = extractedSentences.map(s => s.text).join(' ');
+          contentDescription = summary;
+        }
+        
+        addSource({
+          type: isYoutube ? 'youtube' : 'url',
+          title,
+          content: processedContent,
+        });
+        
+        setUrlInput('');
+        setIsProcessing(false);
+        
+        toast({
+          title: "Source added",
+          description: contentDescription,
+        });
+      } catch (error) {
+        console.error('Error processing URL:', error);
+        // Fallback to basic processing
+        addSource({
+          type: isYoutube ? 'youtube' : 'url',
+          title: `Source from URL`,
+          content: simulateWebContentExtraction(urlInput),
+        });
+        
+        setUrlInput('');
+        setIsProcessing(false);
+        
+        toast({
+          title: "Source added",
+          description: "Web content has been processed",
+        });
+      }
     }, 1500);
   };
 
@@ -149,8 +195,12 @@ export const SourcesAttachment = ({ sources, onSourcesChange }: SourcesAttachmen
           Attach Supporting Sources
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Add multiple supporting documents, references, or paste content directly. More sources lead to 
-          more accurate and well-researched stories.
+          Add multiple supporting documents, references, or paste content directly. 
+          {articleFocus && (
+            <span className="block mt-2 text-sm text-primary font-medium">
+              Content will be filtered to match your article focus for maximum relevance.
+            </span>
+          )}
         </p>
       </div>
 

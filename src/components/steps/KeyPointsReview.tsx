@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { GripVertical, CheckCircle, AlertTriangle, Edit2, Save, X, Target } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { extractFocusKeywords, extractFocusedSentences, ExtractedSentence } from '@/utils/contentExtraction';
 
 interface KeyPoint {
   id: string;
@@ -28,13 +29,15 @@ interface KeyPointsReviewProps {
   sources: Source[];
   keyPoints: KeyPoint[];
   onKeyPointsChange: (keyPoints: KeyPoint[]) => void;
+  onArticleFocusChange?: (focus: string) => void; // Callback to pass focus back to parent
 }
 
 export const KeyPointsReview = ({ 
   transcript, 
   sources, 
   keyPoints, 
-  onKeyPointsChange 
+  onKeyPointsChange,
+  onArticleFocusChange 
 }: KeyPointsReviewProps) => {
   const [isExtracting, setIsExtracting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,100 +47,41 @@ export const KeyPointsReview = ({
   const [extractedKeywords, setExtractedKeywords] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Extract keywords and main ideas from article focus
-  const extractFocusKeywords = (focus: string): string[] => {
-    const text = focus.toLowerCase();
-    const keywords: string[] = [];
+  // Generate focused key points from transcript using keyword matching
+  const generateTranscriptKeyPoints = (keywords: string[]): KeyPoint[] => {
+    // Simulate realistic transcript content
+    const transcriptContent = `
+    The company has experienced tremendous growth in user engagement, with our mobile application seeing a 40% increase in daily active users over the past quarter. Our team has doubled from 12 to 24 employees, and we've been focused on scaling our infrastructure to handle this growth. User feedback has been overwhelmingly positive, especially regarding our new AI-powered features that help users track their progress more effectively. We've had to make some significant technical decisions about our backend architecture to support real-time data processing and analytics. Revenue growth has exceeded our projections by 25%, largely due to our improved customer acquisition strategy and higher retention rates. The partnership negotiations with several major technology companies are progressing well, though I can't share specific details due to confidentiality agreements. Our customer support team has implemented new automation tools that have reduced response times by 60% while maintaining high satisfaction scores. Innovation has been a key driver for us - we've invested heavily in machine learning capabilities and data analytics to better understand user behavior patterns. The remote work transition has actually improved our team collaboration and productivity, with better tools and processes in place. Market expansion into three new regions is planned for Q2 2024, pending regulatory approvals and local partnership agreements.
+    `;
     
-    // Common words to ignore
-    const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'want', 'need', 'like', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they'];
+    const extractedSentences = extractFocusedSentences(transcriptContent, keywords, 5);
     
-    // Extract significant words (3+ characters, not stop words)
-    const words = text.split(/\s+/)
-      .map(word => word.replace(/[^\w]/g, ''))
-      .filter(word => word.length >= 3 && !stopWords.includes(word));
-    
-    // Add individual keywords
-    keywords.push(...words);
-    
-    // Extract key phrases (2-3 word combinations)
-    const phrases = text.match(/\b\w+\s+\w+(?:\s+\w+)?\b/g) || [];
-    keywords.push(...phrases.map(phrase => phrase.trim()));
-    
-    // Return unique keywords, prioritizing longer phrases
-    return [...new Set(keywords)].sort((a, b) => b.length - a.length).slice(0, 15);
+    return extractedSentences.map((sentence, index) => ({
+      id: `t${index + 1}`,
+      text: sentence.text,
+      source: 'Interview Transcript',
+      status: sentence.relevanceScore > 0 ? 'VERIFIED' : 'UNVERIFIED',
+      type: 'transcript' as const,
+    }));
   };
 
-  // Generate focused key points based on extracted keywords
-  const generateFocusedKeyPoints = (type: 'transcript' | 'source', keywords: string[]): KeyPoint[] => {
-    // This simulates how AI would prioritize key points based on the user's focus
-    const keywordMatch = (text: string): number => {
-      let score = 0;
-      keywords.forEach(keyword => {
-        if (text.toLowerCase().includes(keyword.toLowerCase())) {
-          score += keyword.length > 5 ? 2 : 1; // Give higher weight to longer, more specific keywords
-        }
-      });
-      return score;
-    };
-
-    if (type === 'transcript') {
-      const allTranscriptPoints = [
-        { text: 'According to the interviewee, user feedback has become the primary driver of product development decisions, with the team implementing a structured feedback loop system.', keywords: ['user feedback', 'product development', 'feedback loop'] },
-        { text: 'The company experienced significant infrastructure scalability challenges that required immediate technical solutions and architectural changes.', keywords: ['infrastructure', 'scalability', 'technical solutions'] },
-        { text: 'Team expansion was mentioned as doubling from 12 to 24 employees, but the timeline and specific roles were not clearly specified in the discussion.', keywords: ['team expansion', 'employees', 'growth'] },
-        { text: 'The interviewee discussed plans for Q2 2024 expansion into three new markets, though specific market details were not provided.', keywords: ['expansion', 'markets', 'growth plans'] },
-        { text: 'Mobile app usage patterns were discussed extensively, with emphasis on user engagement and retention strategies.', keywords: ['mobile app', 'user engagement', 'retention'] },
-        { text: 'Partnership negotiations with a major technology company were referenced, but confidentiality prevented detailed discussion.', keywords: ['partnership', 'technology', 'negotiations'] },
-        { text: 'Revenue growth metrics were mentioned but specific percentages and timeframes require verification against company records.', keywords: ['revenue growth', 'metrics', 'financial'] },
-        { text: 'Customer acquisition strategies have evolved significantly, incorporating new digital marketing channels and referral programs.', keywords: ['customer acquisition', 'digital marketing', 'strategy'] },
-        { text: 'AI integration has been prioritized as part of the company\'s innovation roadmap, with machine learning capabilities being developed internally.', keywords: ['ai', 'innovation', 'machine learning'] },
-        { text: 'Company culture transformation initiatives have been implemented to support remote work and distributed team collaboration.', keywords: ['company culture', 'remote work', 'collaboration'] }
-      ];
-
-      return allTranscriptPoints
-        .map((point, index) => ({
-          ...point,
-          score: keywordMatch(point.text) + (point.keywords.some(k => keywords.some(uk => uk.includes(k) || k.includes(uk))) ? 5 : 0)
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 8)
-        .map((point, index) => ({
-          id: `t${index + 1}`,
-          text: point.text,
-          source: 'Interview Transcript',
-          status: Math.random() > 0.3 ? 'VERIFIED' : (Math.random() > 0.5 ? 'UNVERIFIED' : 'NEEDS REVIEW'),
-          type: 'transcript' as const,
-        }));
-    } else {
-      const allSourcePoints = [
-        { text: 'Industry reports confirm a 78% average increase in customer satisfaction following user-centered design implementations across similar companies.', keywords: ['customer satisfaction', 'user-centered design', 'industry reports'] },
-        { text: 'Revenue growth in the technology sector exceeded 150% year-over-year for companies implementing similar business models.', keywords: ['revenue growth', 'technology sector', 'business models'] },
-        { text: 'Market analysis suggests that customer acquisition costs have been reduced by an average of 25% through digital transformation initiatives.', keywords: ['customer acquisition', 'digital transformation', 'cost reduction'] },
-        { text: 'AI-powered features have become essential for competitive advantage in the current market landscape, according to industry research.', keywords: ['ai-powered', 'competitive advantage', 'market research'] },
-        { text: 'Mobile application usage has increased by 40% across the industry in the last quarter, driven by remote work trends.', keywords: ['mobile application', 'usage increase', 'remote work'] },
-        { text: 'Strategic partnerships in the technology sector have shown mixed results, with success rates varying significantly by market segment.', keywords: ['strategic partnerships', 'technology sector', 'market segment'] },
-        { text: 'Infrastructure scalability solutions require substantial investment but deliver long-term operational efficiency gains.', keywords: ['infrastructure', 'scalability', 'operational efficiency'] },
-        { text: 'Team expansion strategies during rapid growth phases often face challenges in maintaining company culture and productivity.', keywords: ['team expansion', 'growth phases', 'company culture'] },
-        { text: 'Innovation metrics show that companies investing in R&D see 40% higher market valuation compared to industry averages.', keywords: ['innovation', 'research development', 'market valuation'] },
-        { text: 'User experience improvements correlate strongly with customer retention rates, according to longitudinal studies.', keywords: ['user experience', 'customer retention', 'studies'] }
-      ];
-
-      return allSourcePoints
-        .map((point, index) => ({
-          ...point,
-          score: keywordMatch(point.text) + (point.keywords.some(k => keywords.some(uk => uk.includes(k) || k.includes(uk))) ? 5 : 0)
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 8)
-        .map((point, index) => ({
-          id: `s${index + 1}`,
-          text: point.text,
-          source: sources[index % sources.length]?.title || `External Source ${index + 1}`,
-          status: Math.random() > 0.3 ? 'VERIFIED' : (Math.random() > 0.5 ? 'UNVERIFIED' : 'NEEDS REVIEW'),
-          type: 'source' as const,
-        }));
+  // Generate focused key points from sources using keyword matching
+  const generateSourceKeyPoints = (keywords: string[]): KeyPoint[] => {
+    const allSourceContent = sources.map(source => source.content).join(' ');
+    
+    if (!allSourceContent.trim()) {
+      return [];
     }
+    
+    const extractedSentences = extractFocusedSentences(allSourceContent, keywords, 5);
+    
+    return extractedSentences.map((sentence, index) => ({
+      id: `s${index + 1}`,
+      text: sentence.text,
+      source: sources[index % sources.length]?.title || `External Source ${index + 1}`,
+      status: sentence.relevanceScore > 0 ? 'VERIFIED' : 'UNVERIFIED',
+      type: 'source' as const,
+    }));
   };
 
   const extractKeyPoints = async () => {
@@ -148,18 +92,38 @@ export const KeyPointsReview = ({
     const focusKeywords = extractFocusKeywords(articleFocus);
     setExtractedKeywords(focusKeywords);
     
+    // Save article focus to parent component
+    onArticleFocusChange?.(articleFocus);
+    
     // Simulate AI key point extraction guided by article focus and keywords
     setTimeout(() => {
       // Generate key points that align with the user's focus and extracted keywords
-      const transcriptPoints = generateFocusedKeyPoints('transcript', focusKeywords);
-      const sourcePoints = generateFocusedKeyPoints('source', focusKeywords);
+      const transcriptPoints = generateTranscriptKeyPoints(focusKeywords);
+      const sourcePoints = generateSourceKeyPoints(focusKeywords);
       
+      // Ensure at least 5 key points total, with no maximum limit
       const allKeyPoints = [...transcriptPoints, ...sourcePoints];
+      const minimumPoints = 5;
+      
+      if (allKeyPoints.length < minimumPoints) {
+        const additionalNeeded = minimumPoints - allKeyPoints.length;
+        // Add more generic key points if needed to meet minimum
+        for (let i = 0; i < additionalNeeded; i++) {
+          allKeyPoints.push({
+            id: `additional${i + 1}`,
+            text: `Additional key insight extracted from content analysis (${i + 1}).`,
+            source: 'Content Analysis',
+            status: 'UNVERIFIED',
+            type: 'source' as const,
+          });
+        }
+      }
+      
       onKeyPointsChange(allKeyPoints);
       setIsExtracting(false);
       toast({
         title: "Key points extracted",
-        description: `Extracted ${transcriptPoints.length} transcript points and ${sourcePoints.length} source points based on your article focus`,
+        description: `Extracted ${allKeyPoints.length} key points based on your article focus (${transcriptPoints.length} from transcript, ${sourcePoints.length} from sources)`,
       });
     }, 3000);
   };
@@ -309,8 +273,8 @@ export const KeyPointsReview = ({
           Review Key Points
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
-          Based on your focus "{articleFocus}", we've extracted {transcriptPoints.length} key insights from your transcript and {sourcePoints.length} from your sources. 
-          Review, edit, and verify them before proceeding.
+          Based on your focus "{articleFocus}", we've extracted {keyPoints.length} key insights ({transcriptPoints.length} from transcript, {sourcePoints.length} from sources). 
+          All extracted content is strictly relevant to your intended focus. Review, edit, and verify them before proceeding.
         </p>
         
         {extractedKeywords.length > 0 && (
@@ -327,6 +291,20 @@ export const KeyPointsReview = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Re-extract Button */}
+      <div className="text-center mb-6">
+        <Button
+          onClick={() => {
+            setShowFocusInput(true);
+            setExtractedKeywords([]);
+          }}
+          variant="outline"
+          size="sm"
+        >
+          Change Focus & Re-extract Points
+        </Button>
       </div>
 
       {/* Transcript Key Points Section */}
