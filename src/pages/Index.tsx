@@ -39,7 +39,7 @@ const Index = () => {
               fact-checked stories with full source verification and human oversight.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="text-lg px-8 py-4 bg-white text-gray-900 hover:bg-gray-100" onClick={() => setShowGenerator(true)}>
+              <Button size="lg" onClick={() => setShowGenerator(true)} className="text-lg px-8 bg-white text-gray-900 hover:bg-gray-100 py-[10px]">
                 Start Creating Stories
               </Button>
             </div>
@@ -105,7 +105,9 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24" style={{ backgroundColor: '#61a5c2' }}>
+      <section className="py-24" style={{
+      backgroundColor: '#61a5c2'
+    }}>
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-heading font-bold mb-6 text-secondary-foreground">
             Ready to Transform Your Interviews?
