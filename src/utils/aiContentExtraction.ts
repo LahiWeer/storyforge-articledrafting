@@ -598,38 +598,81 @@ ${sources.map((source, index) =>
 
 ARTICLE STRUCTURE REQUIREMENTS:
 
-1. INTRODUCTION (1-2 paragraphs):
+1. HEADLINE:
+   - Use the provided headline and make it BOLD using Markdown syntax (**headline text**)
+   - The headline must be clear, engaging, and reflect the user's focus and chosen Story Angle
+
+2. INTRODUCTION (1-2 paragraphs):
    - Set context and introduce the main subject
    - Explain why the topic matters to readers
    - Establish the chosen story angle clearly
+   - Use smooth narrative flow from headline to content
 
-2. BODY (Thematic sections):
+3. BODY (Thematic sections):
    - Group related key points into meaningful themes
    - Develop each theme into full paragraphs with explanation and context
-   - Use smooth transitions for cohesive narrative flow
+   - Use smooth transitions for cohesive narrative flow between all sections
+   - Each section should connect logically to the next
    - Incorporate source references naturally with proper attribution
    - Include 1-2 direct quotes from the transcript that flow naturally within the narrative
 
-3. CONCLUSION (1-2 paragraphs):
+4. CONCLUSION (1-2 paragraphs):
    - Provide forward-looking commentary on significance
-   - Highlight implications for future outlook
-   - Connect back to broader context without repeating earlier points
+   - Discuss implications or future outlook
+   - Avoid repetition of earlier points - must be unique commentary
+   - Connect back to broader context without redundancy
 
-WRITING GUIDELINES:
-- Write in ${storyDirection.tone} tone
-- Target approximately ${storyDirection.length === 'short' ? '400-600' : storyDirection.length === 'medium' ? '600-1000' : '1000-1500'} words
-- Use active voice and engaging language
-- Include specific details and evidence
-- Maintain journalistic credibility
-- Connect general knowledge only when it clearly supports the key points
+WRITING QUALITY REQUIREMENTS:
 
-CRITICAL: NATURAL SOURCE ATTRIBUTION:
+SMOOTH NARRATIVE FLOW:
+- Organize sections to connect logically (headline → introduction → body themes → conclusion)
+- Use transitional phrases between paragraphs and sections
+- Each section should flow naturally into the next
+- Avoid abrupt topic changes or jarring transitions
+
+REDUCE REPETITION & REDUNDANCY:
+- Avoid repeating the same closing sentences or phrases across paragraphs
+- Each paragraph must have unique commentary and perspective
+- Merge overlapping or repeated points to maintain conciseness
+- Eliminate redundant information while preserving important details
+- Each conclusion sentence must be distinct and add new insight
+
+STANDARDIZE ATTRIBUTIONS:
+- Use consistent attribution style throughout the article
+- Vary attribution phrases to avoid monotony
+- Examples: "According to [source]...", "As [person] described...", "[Team] revealed...", "The conversation highlighted..."
+- Maintain professional journalistic standards for all citations
+
+SIMPLIFY DENSE SENTENCES:
+- Rewrite overly technical or complex sentences for clarity
+- Maintain meaning while improving readability
+- Break down compound sentences when necessary
+- Use active voice where possible
+- Ensure accessibility for general audiences
+
+STORY ANGLE & TONE CONSISTENCY:
+- Maintain the chosen Story Angle (${storyDirection.angle}) throughout the entire article
+- Keep Writing Tone (${storyDirection.tone}) consistent from headline to conclusion
+- Ensure the article reads as an engaging, cohesive narrative
+- Avoid list-like structure - create flowing prose
+
+NATURAL SOURCE INTEGRATION:
 When incorporating points or quotes from the transcript, mention the source context naturally:
 - If transcript is from an interview: "During the interview, [person/team] explained..." or "[Person/Team] noted that..."
 - If transcript is from a meeting: "In the discussion, participants highlighted..." or "Team members emphasized..."
 - If transcript is from a presentation: "The speaker outlined..." or "[Name] presented..."
 - Do NOT insert quotes mechanically - they must flow naturally within the narrative
-- Use attribution phrases like: "According to [source]...", "As [person] described...", "[Team] revealed...", "The conversation highlighted..."
+- Integrate supporting sources (web links, PDFs, pasted content) smoothly within the text
+
+WRITING GUIDELINES:
+- Write in ${storyDirection.tone} tone consistently
+- Target approximately ${storyDirection.length === 'short' ? '400-600' : storyDirection.length === 'medium' ? '600-1000' : '1000-1500'} words
+- Use active voice and engaging language
+- Include specific details and evidence
+- Maintain journalistic credibility throughout
+- Connect general knowledge only when it clearly supports the key points
+- Ensure ALL key points are incorporated meaningfully
+- Create an engaging, cohesive narrative rather than a list of points
 
 FORMAT YOUR RESPONSE AS JSON:
 {
