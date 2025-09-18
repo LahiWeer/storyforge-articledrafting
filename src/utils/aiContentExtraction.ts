@@ -472,6 +472,8 @@ export interface StoryDirection {
   angle: string;
   length: string;
   customPrompt?: string;
+  customTone?: string;
+  customAngle?: string;
 }
 
 export interface KeyPoint {
@@ -546,8 +548,8 @@ USER'S ARTICLE FOCUS & GOALS:
 "${userFocus}"
 
 STORY DIRECTION:
-- Angle: ${storyDirection.angle}
-- Tone: ${storyDirection.tone}
+- Angle: ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}
+- Tone: ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}
 - Target Length: ${storyDirection.length}
 
 KEY POINTS TO FEATURE:
@@ -566,8 +568,8 @@ HEADLINE REQUIREMENTS:
 3. Keep it concise (under 80 characters for optimal readability)
 4. Use active voice and compelling language
 5. Connect to the most important key points
-6. Match the ${storyDirection.tone} tone
-7. Align with the ${storyDirection.angle} angle approach
+6. Match the ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone} tone
+7. Align with the ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle} angle approach
 
 ANGLE GUIDELINES:
 - Success Story: Focus on achievements, growth, results
@@ -681,8 +683,8 @@ HEADLINE TO USE:
 "${headline}"
 
 STORY DIRECTION:
-- Angle: ${storyDirection.angle}
-- Tone: ${storyDirection.tone}
+- Angle: ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}
+- Tone: ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}
 - Target Length: ${storyDirection.length}
 ${storyDirection.customPrompt ? `- Custom Instructions: ${storyDirection.customPrompt}` : ''}
 
@@ -870,8 +872,8 @@ HEADLINE TO USE:
 "${headline}"
 
 STORY DIRECTION:
-- Angle: ${storyDirection.angle}
-- Tone: ${storyDirection.tone}
+- Angle: ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}
+- Tone: ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}
 - Target Length: ${storyDirection.length}
 ${storyDirection.customPrompt ? `- Custom Instructions: ${storyDirection.customPrompt}` : ''}
 
@@ -926,8 +928,8 @@ ARTICLE REQUIREMENTS:
    - Break down compound sentences when necessary
 
 8. STORY ANGLE & TONE:
-   - Maintain the user's chosen Story Angle (${storyDirection.angle}) throughout the article
-   - Keep Writing Tone (${storyDirection.tone}) consistent from headline to conclusion
+   - Maintain the user's chosen Story Angle (${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}) throughout the article
+   - Keep Writing Tone (${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}) consistent from headline to conclusion
    - Ensure the article reads as an engaging, cohesive narrative rather than a list of points
 
 9. CONCLUSION:

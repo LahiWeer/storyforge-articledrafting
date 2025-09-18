@@ -11,7 +11,9 @@ interface StoryDirectionData {
   tone: string;
   angle: string;
   length: string;
-  customPrompt?: string;  
+  customPrompt?: string;
+  customTone?: string;
+  customAngle?: string;
 }
 
 interface StoryDirectionProps {
@@ -46,10 +48,28 @@ const lengthOptions = [
 
 export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionProps) => {
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
-  const [showCustomAngle, setShowCustomAngle] = useState(false);
+  const [showCustomTone, setShowCustomTone] = useState(direction.tone === 'other');
+  const [showCustomAngle, setShowCustomAngle] = useState(direction.angle === 'other');
 
   const updateDirection = (updates: Partial<StoryDirectionData>) => {
-    onDirectionChange({ ...direction, ...updates });
+    const newDirection = { ...direction, ...updates };
+    
+    // Show/hide custom inputs based on selections
+    if (updates.tone !== undefined) {
+      setShowCustomTone(updates.tone === 'other');
+      if (updates.tone !== 'other') {
+        newDirection.customTone = undefined;
+      }
+    }
+    
+    if (updates.angle !== undefined) {
+      setShowCustomAngle(updates.angle === 'other');
+      if (updates.angle !== 'other') {
+        newDirection.customAngle = undefined;
+      }
+    }
+    
+    onDirectionChange(newDirection);
   };
 
   return (
@@ -96,6 +116,22 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
               </div>
             ))}
           </RadioGroup>
+
+          {showCustomTone && (
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="custom-tone">Custom Writing Tones</Label>
+              <Textarea
+                id="custom-tone"
+                value={direction.customTone || ''}
+                onChange={(e) => updateDirection({ customTone: e.target.value })}
+                placeholder="Enter one or more tones separated by commas (e.g., 'humorous, inspiring, technical')"
+                className="min-h-[80px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Separate multiple tones with commas. These will guide the overall voice and style of your article.
+              </p>
+            </div>
+          )}
         </Card>
 
         {/* Angle Selection */}
@@ -129,7 +165,21 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
             ))}
           </RadioGroup>
 
-          
+          {showCustomAngle && (
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="custom-angle">Custom Story Angle</Label>
+              <Textarea
+                id="custom-angle"
+                value={direction.customAngle || ''}
+                onChange={(e) => updateDirection({ customAngle: e.target.value })}
+                placeholder="Describe your unique story angle or perspective in a few sentences..."
+                className="min-h-[100px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Provide detailed guidance on the perspective, focus, or unique angle you want for your article.
+              </p>
+            </div>
+          )}
         </Card>
 
         {/* Length Selection */}
@@ -197,8 +247,11 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
           <h4 className="font-semibold mb-2 text-secondary-foreground">Story Direction Summary</h4>
           <div className="space-y-1 text-sm text-secondary-foreground">
             <p><strong>Tone:</strong> {toneOptions.find(t => t.value === direction.tone)?.label}</p>
+            {direction.customTone && direction.tone === 'other' && (
+              <p><strong>Custom Tones:</strong> {direction.customTone}</p>
+            )}
             <p><strong>Angle:</strong> {angleOptions.find(a => a.value === direction.angle)?.label}</p>
-            {direction.customAngle && (
+            {direction.customAngle && direction.angle === 'other' && (
               <p><strong>Custom Angle:</strong> {direction.customAngle}</p>
             )}
             <p><strong>Length:</strong> {lengthOptions.find(l => l.value === direction.length)?.label}</p>
