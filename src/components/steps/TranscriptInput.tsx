@@ -65,7 +65,7 @@ export const TranscriptInput = ({ transcript, onTranscriptChange }: TranscriptIn
           // Simulate document parsing (this would use document--parse_document)
           setTimeout(() => {
             // This is a placeholder - in real implementation, you'd get actual extracted text
-            const simulatedExtractedText = `[Extracted from ${file.name}]\n\nThis is where the extracted text from your PDF or DOCX file would appear. The document parsing functionality will extract all text content while preserving formatting and structure.`;
+            const simulatedExtractedText = "This is where the extracted text from your PDF or DOCX file would appear. The document parsing functionality will extract all text content without any formatting markers or wrapper text.";
             
             onTranscriptChange(simulatedExtractedText);
             toast({
