@@ -123,7 +123,8 @@ export const extractKeyPointsWithClaudeSonnet = async (
   content: string,
   source: string,
   userFocus: string,
-  extractedKeywords: ExtractedKeywords
+  extractedKeywords: ExtractedKeywords,
+  sourceType: 'transcript' | 'webResource'
 ): Promise<AIExtractedKeyPoint[]> => {
   const allKeywords = [...extractedKeywords.keywords, ...extractedKeywords.phrases];
   
@@ -137,19 +138,19 @@ Keywords: ${extractedKeywords.keywords.join(', ')}
 Key Phrases: ${extractedKeywords.phrases.join(', ')}
 Main Themes: ${extractedKeywords.mainThemes.join(', ')}
 
-CONTENT TO ANALYZE (Source: ${source}):
+CONTENT TO ANALYZE (Source: ${source}, Type: ${sourceType}):
 "${content}"
 
-INSTRUCTIONS:
-1. Extract 5-12 key points that are directly relevant to the user's focus
+INSTRUCTIONS: 
+1. Extract detailed 5 -12 key points separately depending on source type: 
+    - For transcription: Include quotes, dialogue, and speaker attributions 
+    - For web/resources: Include facts, statistics, and insights 
 2. Each key point MUST include at least one of the extracted keywords/phrases
-3. Focus only on content that supports the user's stated goals and direction
-4. Avoid any content that doesn't align with the focus
-5. Deduplicate repeated sentences across sources
-6. Include quotes from the transcript naturally, attributing them to the correct person/team
-7. Ensure extracted points are substantial and meaningful (not just fragments)
-8. Prioritize content that contains multiple keywords or key phrases
-9. Provide reasoning for each key point's relevance
+3. Deduplicate repeated sentences within the same source type 
+4. Provide reasoning for each key point's relevance 
+5. Focus only on content that supports the user’s stated focus and goals. Avoid irrelevant content. 
+6. Prioritize key points containing multiple keywords/phrases for higher relevance. 
+7. Include substantial and meaningful content (not just fragments).
 
 FORMAT YOUR RESPONSE AS JSON:
 {
@@ -373,51 +374,57 @@ export const processMultipleSourcesWithAI = async (
   transcript: string,
   userFocus: string,
   minKeyPoints: number = 5
-): Promise<{ keyPoints: AIExtractedKeyPoint[]; summary: string; keywords: string[] }> => {
-  // Step 1: Extract keywords using Claude 4 Sonnet
+): Promise<{
+  transcriptKeyPoints: AIExtractedKeyPoint[];
+  webResourceKeyPoints: AIExtractedKeyPoint[];
+  summary: string;
+  keywords: string[];
+}> => {
   const extractedKeywords = await extractKeywordsWithClaudeSonnet(userFocus);
   const allKeywords = [...extractedKeywords.keywords, ...extractedKeywords.phrases];
-  const allKeyPoints: AIExtractedKeyPoint[] = [];
-  
-  // Step 2: Process transcript with Claude 4 Sonnet
+
+  // Separate key points arrays
+  const transcriptKeyPoints: AIExtractedKeyPoint[] = [];
+  const webResourceKeyPoints: AIExtractedKeyPoint[] = [];
+
+  // Process transcription
   if (transcript.trim()) {
-    const transcriptPoints = await extractKeyPointsWithClaudeSonnet(
+    const points = await extractKeyPointsWithClaudeSonnet(
       transcript,
       'Interview Transcript',
       userFocus,
-      extractedKeywords
+      extractedKeywords,
+      'transcript'
     );
-    allKeyPoints.push(...transcriptPoints);
+    transcriptKeyPoints.push(...points);
   }
-  
-  // Step 2: Process each source with Claude 4 Sonnet
+
+  // Process web resources
   for (const source of sources) {
-    const sourcePoints = await extractKeyPointsWithClaudeSonnet(
+    const points = await extractKeyPointsWithClaudeSonnet(
       source.content,
       source.title,
       userFocus,
-      extractedKeywords
+      extractedKeywords,
+      'webResource'
     );
-    allKeyPoints.push(...sourcePoints);
+    webResourceKeyPoints.push(...points);
   }
-  
-  // AI-powered deduplication
-  const deduplicatedPoints = deduplicateAIKeyPoints(allKeyPoints);
-  
-  // Ensure minimum number of key points
-  let finalKeyPoints = deduplicatedPoints;
-  if (finalKeyPoints.length < minKeyPoints) {
-    console.log(`Found ${finalKeyPoints.length} key points, minimum was ${minKeyPoints}`);
-  }
-  
-  const summary = `AI analysis extracted ${finalKeyPoints.length} highly relevant key points from ${sources.length + (transcript ? 1 : 0)} sources using Claude 4 Sonnet's intelligent content analysis.`;
-  
+
+  // Deduplicate separately
+  const dedupTranscription = deduplicateAIKeyPoints(transcriptKeyPoints);
+  const dedupResources = deduplicateAIKeyPoints(webResourceKeyPoints);
+
+  const summary = `AI extracted ${dedupTranscription.length} key points from transcription and ${dedupResources.length} key points from web/resources using Claude 4 Sonnet.`;
+
   return {
-    keyPoints: finalKeyPoints,
+    transcriptKeyPoints: dedupTranscription,
+    webResourceKeyPoints: dedupResources,
     summary,
     keywords: allKeywords
   };
 };
+
 
 /**
  * Remove duplicate key points using AI-enhanced similarity detection
