@@ -863,7 +863,7 @@ export const generateArticleWithGPT5 = async (
     sources
   );
   
-  const prompt = `You are a world-class journalist and content strategist. Generate a complete, publication-ready article based on the provided information.
+  const prompt = `You are a skilled article writer. Generate a coherent, well-structured article that follows these specific rules:
 
 USER'S ARTICLE FOCUS & GOALS:
 "${userFocus}"
@@ -890,61 +890,64 @@ ${sources.map((source, index) =>
   `${index + 1}. ${source.title} (${source.type})`
 ).join('\n')}
 
-ARTICLE REQUIREMENTS:
+ARTICLE WRITING RULES:
 
-1. HEADLINE: 
-   - Start with the provided headline and make it BOLD using **headline text**
-   - The headline must reflect the user's focus and chosen Story Angle
+1. HEADLINE:
+   - Create a bold, creative headline that reflects the article's focus input and the selected Story Angle
+   - Make it BOLD using **headline text** format
 
-2. SMOOTH NARRATIVE FLOW:
-   - Organize the article so introduction, body sections, and conclusion connect logically
-   - Avoid abrupt transitions; each section should flow naturally into the next
-   - Use smooth transitions between all paragraphs and sections
-   - Create a cohesive reading experience from start to finish
+2. INTRODUCTION:
+   - Write a captivating introduction that hooks readers right away
+   - Avoid dry or generic openings
+   - Draw readers in immediately with creative, engaging content
 
-3. INTEGRATE QUOTES NATURALLY:
-   - Incorporate points or quotes from the transcript naturally by mentioning the source when appropriate
-   - Examples: 'During the interview, [Person/Team] explained…' or '[Person/Team] noted that…'
-   - Do not insert quotes mechanically; they should flow naturally within the narrative
-   - Include proper attribution for all transcript content
+3. FLOW:
+   - Ensure the article has a smooth, logical flow
+   - Each section should transition naturally into the next
+   - Avoid a list-like or disjointed feel
+   - Create seamless narrative progression from start to finish
 
-4. REDUCE REPETITION:
-   - Avoid repeating the same closing sentence or phrases in multiple paragraphs
-   - Each paragraph should have unique commentary and perspective
-   - Eliminate redundancy while preserving important information
+4. TONE:
+   - Use the selected Writing Tone (${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone})
+   - If multiple tones are selected, blend them seamlessly throughout the article
+   - Maintain consistency from headline to conclusion
 
-5. ELIMINATE REDUNDANCY:
-   - Merge overlapping or repeated points to make the article concise without losing important information
-   - Avoid stating the same information multiple times in different ways
+5. STORY ANGLE:
+   - Follow the chosen Story Angle (${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle})
+   - Use it to guide the framing and perspective of the entire article
+   - Incorporate the angle naturally into every section
 
-6. STANDARDIZE ATTRIBUTIONS:
-   - Use consistent attribution style for all sources and transcript points
-   - Vary attribution language to avoid monotony
-   - Examples: "According to [source]...", "As described in...", "The data reveals..."
+6. KEY POINTS:
+   - You may rephrase, condense, or expand key points creatively
+   - Do not repeat them word-for-word
+   - Weave them naturally into the narrative without being mechanical
 
-7. SIMPLIFY DENSE SENTENCES:
-   - Rewrite overly technical or complex sentences for clarity and readability while preserving meaning
-   - Use active voice where possible
-   - Break down compound sentences when necessary
+7. QUOTES & MENTIONS:
+   - If transcript includes phrases like "in our interview…" or "we are going to tell…", rewrite them smoothly
+   - Attribute insights directly to specific person, company, or team (e.g., "In an interview with Mark Zuckerberg…")
+   - Quotes should feel natural and integrated, not dropped in mechanically
+   - Make attributions flow seamlessly within the narrative
 
-8. STORY ANGLE & TONE:
-   - Maintain the user's chosen Story Angle (${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}) throughout the article
-   - Keep Writing Tone (${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}) consistent from headline to conclusion
-   - Ensure the article reads as an engaging, cohesive narrative rather than a list of points
+8. READER-CENTRIC:
+   - Keep focus on how the subject affects people, industries, or everyday life
+   - Frame content according to the story angle's perspective
+   - Make the content relevant and impactful for readers
 
-9. CONCLUSION:
-   - End with forward-looking commentary that reflects significance, implications, or future outlook
-   - Do not repeat earlier points in the conclusion
-   - Provide unique insights and broader context
+9. AVOID REPETITION:
+   - Do not overuse phrases like "this development reflects broader strategic initiatives"
+   - Vary word choice and enrich the narrative with synonyms, explanations, or examples
+   - Each paragraph should offer unique commentary and perspective
+   - Eliminate redundant information while preserving important details
 
-10. REFERENCES:
-    - Include references to supporting sources (transcript, web links, PDFs, or pasted content) wherever relevant
-    - Integrate them smoothly within the text rather than as separate citations
+10. CREATIVITY + PROFESSIONALISM:
+    - Balance engaging storytelling with clear, professional writing
+    - Keep it inspiring, polished, and easy to read
+    - Make the article both informative and compelling
 
-STRUCTURE:
-- Introduction (1-2 paragraphs): Set context, introduce main subject, align with story angle
-- Body (3-5 thematic sections): Expand key points with smooth transitions, explanations, and context
-- Conclusion (1-2 paragraphs): Forward-looking commentary without repeating earlier points
+STRUCTURE REQUIREMENTS:
+- Introduction (1-2 paragraphs): Creative hook that draws readers in, sets context, introduces main subject
+- Body (3-5 thematic sections): Develop themes with smooth transitions, natural quote integration, varied language
+- Conclusion (1-2 paragraphs): Forward-looking insights without repetition, broader implications
 
 TARGET LENGTH: ${storyDirection.length === 'short' ? '400-600' : storyDirection.length === 'medium' ? '600-1000' : '1000-1500'} words
 
