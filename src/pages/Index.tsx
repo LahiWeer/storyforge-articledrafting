@@ -21,13 +21,13 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-hero">
         <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute inset-0 bg-cover bg-center opacity-55" style={{
+        <div className="absolute inset-0 bg-cover bg-center opacity-65" style={{
         backgroundImage: `url(${heroImage})`
       }} />
         <div className="relative container mx-auto px-6 py-24 lg:py-32">
           <div className="max-w-4xl mx-auto text-center text-white">
             <h1 className="text-5xl lg:text-7xl font-heading font-bold mb-6 leading-tight" style={{
-            color: '#0d3b66'
+            color: '#1a759f'
           }}>
               Transform Interviews into 
               <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
