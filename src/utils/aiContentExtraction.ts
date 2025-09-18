@@ -50,7 +50,6 @@ export const extractKeyPointsWithAI = async (
   userFocus: string,
   keywords: string[]
 ): Promise<AIExtractedKeyPoint[]> => {
-  // Construct the AI prompt for Claude 4 Sonnet
   const prompt = `You are an expert content analyst. Extract key points from the following content that align with the user's specific focus and goals.
 
 USER'S ARTICLE FOCUS & GOALS:
@@ -85,11 +84,48 @@ FORMAT YOUR RESPONSE AS JSON:
 Relevance scores should be 1-10 based on how well the key point aligns with the user's focus and includes important keywords.`;
 
   try {
-    // Simulate Claude 4 Sonnet API call (replace with actual API call)
-    const response = await simulateClaudeAnalysis(content, userFocus, keywords, source);
-    return response;
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        temperature: 0.3,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.content[0].text;
+    
+    try {
+      const parsedResult = JSON.parse(aiResponse);
+      return parsedResult.keyPoints.map((point: any) => ({
+        text: point.text,
+        matchedKeywords: point.matchedKeywords || [],
+        relevanceScore: point.relevanceScore || 5,
+        source,
+        reasoning: point.reasoning || 'Relevant to user focus'
+      }));
+    } catch (parseError) {
+      console.warn('Failed to parse Claude response as JSON, using fallback');
+      throw parseError;
+    }
   } catch (error) {
-    console.error('AI extraction failed:', error);
+    console.error('Claude 4 Sonnet extraction failed:', error);
     // Fallback to keyword-based extraction
     return fallbackKeywordExtraction(content, source, keywords);
   }
@@ -392,19 +428,18 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
 };
 
 /**
- * Use Claude 4 Sonnet to generate a full draft article
+ * Use Claude 4 Sonnet to generate a complete draft article
  */
-export const generateArticleWithAI = async (
+const generateArticleWithClaudeSonnet = async (
   keyPoints: KeyPoint[],
   sources: Source[],
   transcript: string,
   storyDirection: StoryDirection,
-  userFocus: string
+  userFocus: string,
+  quotes: string[]
 ): Promise<DraftResult> => {
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
-  const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
   
-  // Construct comprehensive prompt for Claude 4 Sonnet
   const prompt = `You are a professional journalist and content strategist. Generate a complete, publication-ready article based on the provided information.
 
 USER'S ARTICLE FOCUS & GOALS:
@@ -464,8 +499,7 @@ FORMAT YOUR RESPONSE AS JSON:
   "draft": "Complete article content with proper paragraph breaks (use \\n\\n for paragraph separation)",
   "sourceMapping": {
     "paragraph_1": ["Source Name 1", "Source Name 2"],
-    "paragraph_2": ["Source Name 3"],
-    // Map each major paragraph/section to its sources
+    "paragraph_2": ["Source Name 3"]
   },
   "wordCount": estimated_word_count,
   "readTime": estimated_read_time_in_minutes
@@ -474,8 +508,69 @@ FORMAT YOUR RESPONSE AS JSON:
 Generate a compelling, well-structured article that transforms the key points into an engaging narrative while maintaining journalistic integrity.`;
 
   try {
-    // Simulate Claude 4 Sonnet API call (replace with actual API call)
-    const response = await simulateClaudeArticleGeneration(
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        temperature: 0.4,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.content[0].text;
+    
+    try {
+      const parsedResult = JSON.parse(aiResponse);
+      return {
+        draft: parsedResult.draft,
+        sourceMapping: parsedResult.sourceMapping || {},
+        headline: parsedResult.headline,
+        wordCount: parsedResult.wordCount || 800,
+        readTime: parsedResult.readTime || 4
+      };
+    } catch (parseError) {
+      console.warn('Failed to parse Claude response as JSON, using fallback');
+      throw parseError;
+    }
+  } catch (error) {
+    console.error('Claude 4 Sonnet article generation failed:', error);
+    // Fallback to enhanced mock generation
+    return generateEnhancedMockArticle(keyPoints, sources, transcript, storyDirection, userFocus, quotes);
+  }
+};
+
+/**
+ * Use Claude 4 Sonnet to generate a full draft article
+ */
+export const generateArticleWithAI = async (
+  keyPoints: KeyPoint[],
+  sources: Source[],
+  transcript: string,
+  storyDirection: StoryDirection,
+  userFocus: string
+): Promise<DraftResult> => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
+  
+  try {
+    // Use Claude 4 Sonnet for actual article generation
+    const response = await generateArticleWithClaudeSonnet(
       verifiedKeyPoints,
       sources,
       transcript,
@@ -492,25 +587,7 @@ Generate a compelling, well-structured article that transforms the key points in
 };
 
 /**
- * Simulate Claude 4 Sonnet article generation (replace with actual API call)
- */
-const simulateClaudeArticleGeneration = async (
-  keyPoints: KeyPoint[],
-  sources: Source[],
-  transcript: string,
-  storyDirection: StoryDirection,
-  userFocus: string,
-  quotes: string[]
-): Promise<DraftResult> => {
-  // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 2500));
-
-  const enhanced = generateEnhancedMockArticle(keyPoints, sources, transcript, storyDirection, userFocus, quotes);
-  return enhanced;
-};
-
-/**
- * Generate enhanced mock article with proper structure
+ * Enhanced mock article generation with proper structure
  */
 const generateEnhancedMockArticle = (
   keyPoints: KeyPoint[],
@@ -520,185 +597,143 @@ const generateEnhancedMockArticle = (
   userFocus: string,
   quotes: string[]
 ): DraftResult => {
-  // Generate compelling headline based on focus and angle
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  
+  // Generate headline based on story direction
   const generateHeadline = (): string => {
-    const focusWords = userFocus.toLowerCase().split(' ').filter(word => word.length > 3);
-    const primaryFocus = focusWords[0] || 'business';
-    
     const headlineTemplates = {
       'success-story': [
-        `How ${primaryFocus} Innovation Drives Unprecedented Growth`,
-        `The ${primaryFocus} Transformation That's Reshaping Industries`,
-        `From Strategy to Success: ${primaryFocus} Leadership Delivers Results`
+        'How Strategic Innovation Drives Unprecedented Growth',
+        'From Vision to Victory: A Success Story in Modern Business',
+        'Breaking Barriers: The Journey to Market Leadership'
       ],
       'challenges-overcome': [
-        `Turning ${primaryFocus} Obstacles Into Competitive Advantages`,
-        `How Smart ${primaryFocus} Strategy Overcame Market Challenges`,
-        `The ${primaryFocus} Resilience Formula: Lessons from the Frontlines`
+        'Turning Obstacles into Opportunities: Lessons in Resilience',
+        'When Challenges Become Catalysts for Change',
+        'Navigating Uncertainty: A Guide to Strategic Adaptation'
       ],
       'innovation-focus': [
-        `${primaryFocus} Innovation Breakthrough: The Future Is Here`,
-        `Revolutionizing ${primaryFocus}: Technology Meets Strategy`,
-        `The ${primaryFocus} Innovation Edge: Redefining Possibilities`
+        'Pioneering the Future: Innovation at the Core of Success',
+        'Beyond Technology: How Innovation Shapes Business Strategy',
+        'The Innovation Imperative: Redefining Industry Standards'
       ],
       'default': [
-        `${primaryFocus} Strategy Insights: Market Leadership Decoded`,
-        `The ${primaryFocus} Evolution: Strategic Insights for Growth`,
-        `Understanding ${primaryFocus} Excellence: Key Strategic Insights`
+        'Strategic Insights: Navigating Today\'s Business Landscape',
+        'Leadership in Action: Driving Change Through Vision',
+        'Business Evolution: Adapting to Market Dynamics'
       ]
     };
     
     const templates = headlineTemplates[storyDirection.angle as keyof typeof headlineTemplates] || headlineTemplates.default;
-    return templates[0].charAt(0).toUpperCase() + templates[0].slice(1);
+    return templates[Math.floor(Math.random() * templates.length)];
   };
-
-  // Group key points into thematic sections
-  const groupKeyPointsIntoThemes = (): Record<string, KeyPoint[]> => {
-    const themes: Record<string, KeyPoint[]> = {};
-    
-    keyPoints.forEach(point => {
-      const text = point.text.toLowerCase();
-      let assigned = false;
-      
-      // Strategic Foundation
-      if (text.includes('strategy') || text.includes('vision') || text.includes('foundation') || text.includes('approach')) {
-        themes['Strategic Foundation'] = themes['Strategic Foundation'] || [];
-        themes['Strategic Foundation'].push(point);
-        assigned = true;
-      }
-      
-      // Growth & Results
-      if (!assigned && (text.includes('growth') || text.includes('revenue') || text.includes('increase') || text.includes('performance'))) {
-        themes['Growth & Results'] = themes['Growth & Results'] || [];
-        themes['Growth & Results'].push(point);
-        assigned = true;
-      }
-      
-      // Innovation & Technology
-      if (!assigned && (text.includes('innovation') || text.includes('technology') || text.includes('ai') || text.includes('digital'))) {
-        themes['Innovation & Technology'] = themes['Innovation & Technology'] || [];
-        themes['Innovation & Technology'].push(point);
-        assigned = true;
-      }
-      
-      // Market Position
-      if (!assigned && (text.includes('market') || text.includes('customer') || text.includes('competitive') || text.includes('industry'))) {
-        themes['Market Position'] = themes['Market Position'] || [];
-        themes['Market Position'].push(point);
-        assigned = true;
-      }
-      
-      // Operational Excellence
-      if (!assigned) {
-        themes['Operational Excellence'] = themes['Operational Excellence'] || [];
-        themes['Operational Excellence'].push(point);
-      }
-    });
-    
-    return themes;
-  };
-
-  const headline = generateHeadline();
-  const themes = groupKeyPointsIntoThemes();
-  const sourceMapping: Record<string, string[]> = {};
-
-  // Generate introduction
-  const introduction = generateAIIntroduction(storyDirection, userFocus, keyPoints[0]);
-  sourceMapping['introduction'] = keyPoints.slice(0, 2).map(kp => kp.source);
-
-  // Generate body sections
-  const bodySections: string[] = [];
-  const themeNames = Object.keys(themes);
-  let quoteUsed = false;
-
-  themeNames.forEach((themeName, index) => {
-    const themePoints = themes[themeName];
-    if (themePoints.length === 0) return;
-
-    const primaryPoint = themePoints[0];
-    const sectionSources = themePoints.map(tp => tp.source);
-    
-    // Add quote in the middle section if available
-    const shouldAddQuote = !quoteUsed && quotes.length > 0 && index === Math.floor(themeNames.length / 2);
-    
-    let section = `${themeName} represents a critical dimension of the overall transformation. ${primaryPoint.text} This development extends beyond immediate tactical considerations to encompass strategic positioning and long-term competitive advantage.`;
-    
-    // Add additional points from this theme
-    if (themePoints.length > 1) {
-      const additionalPoints = themePoints.slice(1, 3); // Take up to 2 more points
-      section += ' ' + additionalPoints.map(point => 
-        `The evidence further demonstrates that ${point.text.toLowerCase()}`
-      ).join(' ');
-    }
-    
-    // Add quote if appropriate
-    if (shouldAddQuote) {
-      section += ` As noted during the discussion, "${quotes[0]}" This perspective underscores the comprehensive nature of the strategic approach being implemented.`;
-      quoteUsed = true;
-    }
-    
-    bodySections.push(section);
-    sourceMapping[`section_${index + 1}`] = sectionSources;
-  });
-
-  // Generate conclusion
-  const conclusion = generateAIConclusion(storyDirection, userFocus);
-  sourceMapping['conclusion'] = sources.slice(0, 2).map(s => s.title);
-
-  // Combine all sections
-  const draft = [
-    introduction,
-    '',
-    ...bodySections.map(section => section + '\n'),
-    conclusion
-  ].join('\n\n');
-
-  const wordCount = draft.split(/\s+/).length;
-  const readTime = Math.ceil(wordCount / 250); // Average reading speed
-
+  
+  // Generate article sections
+  const introduction = generateIntroduction();
+  const body = generateBody();
+  const conclusion = generateConclusion();
+  
+  const fullArticle = `${introduction}\n\n${body}\n\n${conclusion}`;
+  const wordCount = fullArticle.split(/\s+/).length;
+  const readTime = Math.ceil(wordCount / 200);
+  
+  const sourceMapping = generateSourceMapping();
+  
   return {
-    draft,
+    draft: fullArticle,
     sourceMapping,
-    headline,
+    headline: generateHeadline(),
     wordCount,
     readTime
   };
-};
-
-/**
- * Generate AI-style introduction
- */
-const generateAIIntroduction = (storyDirection: StoryDirection, userFocus: string, primaryKeyPoint?: KeyPoint): string => {
-  const focusElements = userFocus.toLowerCase().split(' ').filter(word => word.length > 3);
   
-  const introTemplates = {
-    'success-story': `In today's competitive landscape, ${focusElements[0] || 'strategic'} excellence has become the defining characteristic of market leaders. ${primaryKeyPoint ? primaryKeyPoint.text : 'Recent developments reveal systematic approaches to growth and innovation that extend far beyond conventional business practices.'} This transformation represents more than operational improvement—it reflects a fundamental shift in how organizations approach strategic development and market positioning.`,
+  function generateIntroduction(): string {
+    const hasQuotes = quotes.length > 0;
+    const sampleQuote = hasQuotes ? quotes[0] : '';
     
-    'challenges-overcome': `The path to ${focusElements[0] || 'strategic'} leadership is rarely straightforward, yet the most compelling success stories emerge from organizations that transform obstacles into competitive advantages. ${primaryKeyPoint ? primaryKeyPoint.text : 'The systematic approach to overcoming challenges has revealed methodologies that extend beyond immediate problem-solving to encompass long-term strategic resilience.'} These developments demonstrate how methodical response to adversity can create sustainable competitive positioning.`,
-    
-    'innovation-focus': `At the intersection of ${focusElements[0] || 'technology'} and strategic vision, breakthrough innovations are reshaping traditional business paradigms. ${primaryKeyPoint ? primaryKeyPoint.text : 'The integration of technological advancement with strategic planning has created new possibilities for market differentiation and operational excellence.'} This technological evolution represents fundamental transformation in how organizations approach both immediate challenges and long-term strategic objectives.`,
-    
-    'default': `The dynamics of ${focusElements[0] || 'strategic'} development continue to evolve, creating opportunities for organizations that can effectively integrate innovation with operational excellence. ${primaryKeyPoint ? primaryKeyPoint.text : 'Current market conditions reward systematic approaches to growth and strategic positioning that extend beyond conventional business practices.'} These developments reflect broader shifts in how strategic planning addresses both immediate market demands and long-term competitive positioning.`
-  };
+    switch (storyDirection.angle) {
+      case 'success-story':
+        return `In today's rapidly evolving business landscape, success stories often emerge from strategic vision combined with precise execution. ${hasQuotes ? `"${sampleQuote}," reflecting the momentum that has characterized recent developments.` : 'The insights from recent developments reveal a systematic approach to growth that extends beyond traditional metrics.'}\n\nThis transformation represents more than incremental progress—it demonstrates how strategic alignment with market dynamics can create sustainable competitive advantages. The evidence points to a comprehensive approach that balances innovation with operational excellence, positioning the organization for continued expansion in an increasingly complex marketplace.`;
+      
+      case 'challenges-overcome':
+        return `Behind every breakthrough lies a series of obstacles that once seemed insurmountable. ${hasQuotes ? `"${sampleQuote}," highlighting the mindset that transforms challenges into competitive advantages.` : 'The approach to overcoming significant challenges has revealed patterns of resilience and strategic thinking.'}\n\nThe ability to navigate complex business challenges while maintaining forward momentum requires both tactical flexibility and strategic clarity. These experiences have shaped a more resilient organizational structure, demonstrating how systematic problem-solving can create lasting value and competitive differentiation.`;
+      
+      case 'innovation-focus':
+        return `At the intersection of technology and strategy, breakthrough innovations are reshaping traditional business practices. ${hasQuotes ? `"${sampleQuote}," emphasizing the transformative potential of strategic innovation.` : 'The integration of innovative approaches has created new possibilities for growth and efficiency.'}\n\nInnovation in today's context extends far beyond technological implementation to encompass strategic thinking, operational excellence, and market positioning. This comprehensive approach has established a foundation for sustained competitive advantage through continuous adaptation and strategic foresight.`;
+      
+      default:
+        return `In an increasingly complex business environment, strategic insights often emerge from the intersection of vision, execution, and market understanding. ${hasQuotes ? `"${sampleQuote}," providing context for the strategic decisions that have shaped recent developments.` : 'The patterns that emerge from recent developments offer valuable insights into strategic positioning and market dynamics.'}\n\nThe convergence of strategic planning, operational excellence, and market awareness creates opportunities for organizations that can effectively balance immediate concerns with long-term vision. These insights reveal approaches that extend beyond traditional business practices to encompass broader questions of competitive advantage and sustainable growth.`;
+    }
+  }
   
-  return introTemplates[storyDirection.angle as keyof typeof introTemplates] || introTemplates.default;
-};
-
-/**
- * Generate AI-style conclusion
- */
-const generateAIConclusion = (storyDirection: StoryDirection, userFocus: string): string => {
-  const focusElements = userFocus.toLowerCase().split(' ').filter(word => word.length > 3);
+  function generateBody(): string {
+    if (verifiedKeyPoints.length === 0) {
+      return 'The analysis of available information is ongoing, with comprehensive insights pending verification of key data points. Strategic development continues across multiple dimensions, with particular attention to market positioning and operational efficiency.';
+    }
+    
+    // Group key points thematically
+    const themes = groupKeyPointsByTheme();
+    const sections = [];
+    
+    for (const [themeName, points] of Object.entries(themes)) {
+      if (points.length === 0) continue;
+      
+      let section = `**${themeName}**\n\n`;
+      
+      for (const point of points) {
+        const attribution = point.type === 'transcript' ? 'According to the discussion' : `Based on ${point.source}`;
+        section += `${attribution}, ${point.text} This development reflects broader strategic initiatives that align with market opportunities and organizational capabilities.\n\n`;
+      }
+      
+      sections.push(section);
+    }
+    
+    return sections.join('');
+  }
   
-  const conclusionTemplates = {
-    'success-story': `The trajectory of ${focusElements[0] || 'strategic'} development outlined here extends beyond current achievements to indicate sustainable competitive advantages. Market dynamics continue to reward organizations that integrate systematic planning with adaptive execution, suggesting that these approaches will become increasingly central to long-term success. The implications reach beyond individual organizational outcomes to influence broader industry standards and competitive benchmarks.`,
-    
-    'challenges-overcome': `The methodologies for addressing ${focusElements[0] || 'strategic'} challenges demonstrated here offer frameworks that extend beyond immediate problem-solving to encompass organizational resilience. As market conditions continue to present complex obstacles, the systematic approaches to transformation and adaptation become increasingly valuable. These developments suggest evolving standards for how organizations build competitive advantages through strategic challenge management.`,
-    
-    'innovation-focus': `The ${focusElements[0] || 'technological'} innovations explored here represent early indicators of broader transformation in strategic business development. The integration of technological advancement with systematic planning creates templates that other organizations will likely adopt and adapt. Looking forward, these approaches may define new standards for how innovation drives sustainable competitive positioning in rapidly evolving markets.`,
-    
-    'default': `The ${focusElements[0] || 'strategic'} insights revealed through this analysis point toward emerging patterns in organizational development and market positioning. The systematic approaches to growth and competitive advantage suggest methodologies that will likely influence broader industry practices. As market dynamics continue to evolve, these frameworks for strategic development become increasingly relevant for organizations seeking sustainable competitive advantages.`
-  };
+  function generateConclusion(): string {
+    return `Looking ahead, these developments position the organization for continued growth and market leadership. The strategic framework established through these initiatives creates a foundation for adapting to future market dynamics while maintaining competitive advantages.\n\nThe implications extend beyond immediate business outcomes to broader questions of industry evolution and market positioning. As these strategies continue to evolve, they will likely influence best practices across the sector, demonstrating the value of comprehensive strategic thinking in an increasingly complex business environment.`;
+  }
   
-  return conclusionTemplates[storyDirection.angle as keyof typeof conclusionTemplates] || conclusionTemplates.default;
+  function groupKeyPointsByTheme(): Record<string, KeyPoint[]> {
+    const themes: Record<string, KeyPoint[]> = {
+      'Strategic Foundation': [],
+      'Growth and Performance': [],
+      'Innovation and Technology': [],
+      'Market Position': [],
+      'Operational Excellence': []
+    };
+    
+    for (const point of verifiedKeyPoints) {
+      const text = point.text.toLowerCase();
+      
+      if (text.includes('strategy') || text.includes('vision') || text.includes('plan')) {
+        themes['Strategic Foundation'].push(point);
+      } else if (text.includes('growth') || text.includes('revenue') || text.includes('performance')) {
+        themes['Growth and Performance'].push(point);
+      } else if (text.includes('innovation') || text.includes('technology') || text.includes('digital')) {
+        themes['Innovation and Technology'].push(point);
+      } else if (text.includes('market') || text.includes('customer') || text.includes('competitive')) {
+        themes['Market Position'].push(point);
+      } else {
+        themes['Operational Excellence'].push(point);
+      }
+    }
+    
+    // Remove empty themes
+    return Object.fromEntries(
+      Object.entries(themes).filter(([_, points]) => points.length > 0)
+    );
+  }
+  
+  function generateSourceMapping(): Record<string, string[]> {
+    const sourceNames = sources.map(s => s.title);
+    if (transcript) sourceNames.push('Interview Transcript');
+    
+    return {
+      'paragraph_1': sourceNames.slice(0, 2),
+      'paragraph_2': sourceNames.slice(1, 3),
+      'paragraph_3': sourceNames
+    };
+  }
 };
