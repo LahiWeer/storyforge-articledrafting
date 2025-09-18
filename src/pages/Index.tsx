@@ -32,7 +32,7 @@ const Index = () => {
         onNavigate={handleNavigation} 
       />
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-hero opacity-65">
+      <section className="relative overflow-hidden bg-gradient-hero">
         <div className="absolute inset-0 bg-black/20"></div>
         <div 
           className="absolute inset-0 bg-cover bg-center"
