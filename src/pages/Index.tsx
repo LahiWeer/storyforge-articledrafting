@@ -105,7 +105,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-secondary style={{ color: '#61a5c2'}}">
+      <section className="py-24" style={{ backgroundColor: '#61a5c2' }}>
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-heading font-bold mb-6 text-secondary-foreground">
             Ready to Transform Your Interviews?
