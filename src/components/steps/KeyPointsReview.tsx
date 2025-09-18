@@ -10,8 +10,9 @@ import { useToast } from '@/components/ui/use-toast';
 interface KeyPoint {
   id: string;
   text: string;
-  sources: string[];
-  verified: boolean;
+  source: string; // specific source (transcript or source title/url)
+  status: 'VERIFIED' | 'UNVERIFIED' | 'NEEDS REVIEW';
+  type: 'transcript' | 'source';
 }
 
 interface Source {
@@ -42,76 +43,132 @@ export const KeyPointsReview = ({
   const extractKeyPoints = async () => {
     setIsExtracting(true);
     
-    // Simulate AI key point extraction
+    // Simulate AI key point extraction with separate transcript and source points
     setTimeout(() => {
-      const mockKeyPoints: KeyPoint[] = [
+      const transcriptKeyPoints: KeyPoint[] = [
         {
-          id: '1',
-          text: 'User feedback drives product development decisions',
-          sources: [sources[0]?.id || ''],
-          verified: true,
+          id: 't1',
+          text: 'According to the interviewee, user feedback has become the primary driver of product development decisions, with the team implementing a structured feedback loop system.',
+          source: 'Interview Transcript',
+          status: 'VERIFIED',
+          type: 'transcript',
         },
         {
-          id: '2',
-          text: '78% increase in customer satisfaction post-feature implementation',
-          sources: [sources[0]?.id || ''],
-          verified: false,
+          id: 't2',
+          text: 'The company experienced significant infrastructure scalability challenges that required immediate technical solutions and architectural changes.',
+          source: 'Interview Transcript',
+          status: 'VERIFIED',
+          type: 'transcript',
         },
         {
-          id: '3',
-          text: 'Q2 2024 expansion planned for three new markets',
-          sources: [],
-          verified: false,
+          id: 't3',
+          text: 'Team expansion was mentioned as doubling from 12 to 24 employees, but the timeline and specific roles were not clearly specified in the discussion.',
+          source: 'Interview Transcript',
+          status: 'NEEDS REVIEW',
+          type: 'transcript',
         },
         {
-          id: '4',
-          text: 'Infrastructure scalability issues pose technical challenges',
-          sources: [sources[0]?.id || ''],
-          verified: true,
+          id: 't4',
+          text: 'The interviewee discussed plans for Q2 2024 expansion into three new markets, though specific market details were not provided.',
+          source: 'Interview Transcript',
+          status: 'UNVERIFIED',
+          type: 'transcript',
         },
         {
-          id: '5',
-          text: 'Team doubled from 12 to 24 employees annually',
-          sources: [],
-          verified: false,
+          id: 't5',
+          text: 'Mobile app usage patterns were discussed extensively, with emphasis on user engagement and retention strategies.',
+          source: 'Interview Transcript',
+          status: 'VERIFIED',
+          type: 'transcript',
         },
         {
-          id: '6',
-          text: 'Revenue growth exceeded 150% year-over-year',
-          sources: [sources[1]?.id || ''],
-          verified: true,
+          id: 't6',
+          text: 'Partnership negotiations with a major technology company were referenced, but confidentiality prevented detailed discussion.',
+          source: 'Interview Transcript',
+          status: 'NEEDS REVIEW',
+          type: 'transcript',
         },
         {
-          id: '7',
-          text: 'Mobile app usage increased 40% in last quarter',
-          sources: [sources[0]?.id || ''],
-          verified: false,
+          id: 't7',
+          text: 'Revenue growth metrics were mentioned but specific percentages and timeframes require verification against company records.',
+          source: 'Interview Transcript',
+          status: 'UNVERIFIED',
+          type: 'transcript',
         },
         {
-          id: '8',
-          text: 'Customer acquisition cost reduced by 25%',
-          sources: [sources[1]?.id || ''],
-          verified: true,
+          id: 't8',
+          text: 'Customer acquisition strategies have evolved significantly, incorporating new digital marketing channels and referral programs.',
+          source: 'Interview Transcript',
+          status: 'VERIFIED',
+          type: 'transcript',
+        },
+      ];
+
+      const sourceKeyPoints: KeyPoint[] = [
+        {
+          id: 's1',
+          text: 'Industry reports confirm a 78% average increase in customer satisfaction following user-centered design implementations across similar companies.',
+          source: sources[0]?.title || 'External Source 1',
+          status: 'VERIFIED',
+          type: 'source',
         },
         {
-          id: '9',
-          text: 'New AI features launched to enhance user experience',
-          sources: [],
-          verified: false,
+          id: 's2',
+          text: 'Revenue growth in the technology sector exceeded 150% year-over-year for companies implementing similar business models.',
+          source: sources[1]?.title || 'External Source 2',
+          status: 'VERIFIED',
+          type: 'source',
         },
         {
-          id: '10',
-          text: 'Partnership with major tech company finalized',
-          sources: [sources[0]?.id || ''],
-          verified: false,
+          id: 's3',
+          text: 'Market analysis suggests that customer acquisition costs have been reduced by an average of 25% through digital transformation initiatives.',
+          source: sources[0]?.title || 'External Source 1',
+          status: 'VERIFIED',
+          type: 'source',
+        },
+        {
+          id: 's4',
+          text: 'AI-powered features have become essential for competitive advantage in the current market landscape, according to industry research.',
+          source: sources[1]?.title || 'External Source 2',
+          status: 'VERIFIED',
+          type: 'source',
+        },
+        {
+          id: 's5',
+          text: 'Mobile application usage has increased by 40% across the industry in the last quarter, driven by remote work trends.',
+          source: sources[0]?.title || 'External Source 1',
+          status: 'NEEDS REVIEW',
+          type: 'source',
+        },
+        {
+          id: 's6',
+          text: 'Strategic partnerships in the technology sector have shown mixed results, with success rates varying significantly by market segment.',
+          source: sources[1]?.title || 'External Source 2',
+          status: 'UNVERIFIED',
+          type: 'source',
+        },
+        {
+          id: 's7',
+          text: 'Infrastructure scalability solutions require substantial investment but deliver long-term operational efficiency gains.',
+          source: sources[0]?.title || 'External Source 1',
+          status: 'VERIFIED',
+          type: 'source',
+        },
+        {
+          id: 's8',
+          text: 'Team expansion strategies during rapid growth phases often face challenges in maintaining company culture and productivity.',
+          source: sources[1]?.title || 'External Source 2',
+          status: 'NEEDS REVIEW',
+          type: 'source',
         },
       ];
       
-      onKeyPointsChange(mockKeyPoints);
+      const allKeyPoints = [...transcriptKeyPoints, ...sourceKeyPoints];
+      onKeyPointsChange(allKeyPoints);
       setIsExtracting(false);
       toast({
         title: "Key points extracted",
-        description: "Review and approve the insights below",
+        description: `Extracted ${transcriptKeyPoints.length} transcript points and ${sourceKeyPoints.length} source points`,
       });
     }, 3000);
   };
@@ -158,13 +215,20 @@ export const KeyPointsReview = ({
   };
 
   const getVerificationStatus = (point: KeyPoint) => {
-    if (point.sources.length === 0) {
-      return { icon: AlertTriangle, color: 'text-warning', label: 'UNVERIFIED' };
+    switch (point.status) {
+      case 'VERIFIED':
+        return { icon: CheckCircle, color: 'text-success', label: 'VERIFIED' };
+      case 'UNVERIFIED':
+        return { icon: AlertTriangle, color: 'text-warning', label: 'UNVERIFIED' };
+      case 'NEEDS REVIEW':
+        return { icon: AlertTriangle, color: 'text-orange-500', label: 'NEEDS REVIEW' };
+      default:
+        return { icon: AlertTriangle, color: 'text-warning', label: 'UNVERIFIED' };
     }
-    return point.verified 
-      ? { icon: CheckCircle, color: 'text-success', label: 'VERIFIED' }
-      : { icon: AlertTriangle, color: 'text-warning', label: 'NEEDS REVIEW' };
   };
+
+  const transcriptPoints = keyPoints.filter(point => point.type === 'transcript');
+  const sourcePoints = keyPoints.filter(point => point.type === 'source');
 
   if (isExtracting) {
     return (
@@ -184,117 +248,219 @@ export const KeyPointsReview = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="text-center mb-8">
         <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
         <h2 className="text-3xl font-heading font-semibold mb-2 text-foreground">
           Review Key Points
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          We've extracted {keyPoints.length} key insights from your transcript and sources. 
-          Review, edit, and approve them before proceeding.
+          We've extracted {transcriptPoints.length} key insights from your transcript and {sourcePoints.length} from your sources. 
+          Review, edit, and verify them before proceeding.
         </p>
       </div>
 
-      <div className="grid gap-4">
-        {keyPoints.map((point, index) => {
-          const status = getVerificationStatus(point);
-          const StatusIcon = status.icon;
-          
-          return (
-            <Card key={point.id} className={`p-6 transition-all ${
-              point.sources.length === 0 ? 'border-warning/30 bg-warning/5' : 'hover:bg-card-hover'
-            }`}>
-              <div className="flex items-start gap-4">
-                <div className="flex items-center gap-2 mt-1">
-                  <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
-                  <span className="text-sm font-medium text-muted-foreground min-w-[2rem]">
-                    {index + 1}
-                  </span>
-                </div>
-                
-                <div className="flex-1 space-y-3">
-                  {editingId === point.id ? (
-                    <div className="space-y-3">
-                      <Textarea
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        className="min-h-[80px]"
-                      />
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={saveEdit}>
-                          <Save className="w-4 h-4 mr-1" />
-                          Save
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={cancelEdit}>
-                          <X className="w-4 h-4 mr-1" />
-                          Cancel
-                        </Button>
+      {/* Transcript Key Points Section */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground border-b pb-2">
+          Transcript Key Points ({transcriptPoints.length})
+        </h3>
+        <div className="grid gap-4">
+          {transcriptPoints.map((point, index) => {
+            const status = getVerificationStatus(point);
+            const StatusIcon = status.icon;
+            
+            return (
+              <Card key={point.id} className={`p-6 transition-all ${
+                point.status === 'UNVERIFIED' ? 'border-warning/30 bg-warning/5' : 
+                point.status === 'NEEDS REVIEW' ? 'border-orange-300/30 bg-orange-50/5' : 'hover:bg-card-hover'
+              }`}>
+                <div className="flex items-start gap-4">
+                  <div className="flex items-center gap-2 mt-1">
+                    <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
+                    <span className="text-sm font-medium text-muted-foreground min-w-[2rem]">
+                      T{index + 1}
+                    </span>
+                  </div>
+                  
+                  <div className="flex-1 space-y-3">
+                    {editingId === point.id ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className="min-h-[80px]"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={saveEdit}>
+                            <Save className="w-4 h-4 mr-1" />
+                            Save
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={cancelEdit}>
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-base leading-relaxed">{point.text}</p>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1">
-                            <StatusIcon className={`w-4 h-4 ${status.color}`} />
-                            <span className={`text-sm font-medium ${status.color}`}>
-                              {status.label}
-                            </span>
+                    ) : (
+                      <>
+                        <p className="text-base leading-relaxed">{point.text}</p>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                              <StatusIcon className={`w-4 h-4 ${status.color}`} />
+                              <span className={`text-sm font-medium ${status.color}`}>
+                                {status.label}
+                              </span>
+                            </div>
+                            
+                            <Badge variant="outline" className="text-xs">
+                              {point.source}
+                            </Badge>
                           </div>
                           
-                          {point.sources.length > 0 && (
-                            <div className="flex gap-1">
-                              {point.sources.map(sourceId => (
-                                <Badge key={sourceId} variant="outline" className="text-xs">
-                                  {getSourceTitle(sourceId)}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditing(point)}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeKeyPoint(point.id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => startEditing(point)}
-                          >
-                            <Edit2 className="w-4 h-4" />
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="mt-1">
+                    <Checkbox
+                      checked={point.status === 'VERIFIED'}
+                      onCheckedChange={(checked) => 
+                        updateKeyPoint(point.id, { 
+                          status: checked ? 'VERIFIED' : 'UNVERIFIED' 
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Source Key Points Section */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold text-foreground border-b pb-2">
+          Source Key Points ({sourcePoints.length})
+        </h3>
+        <div className="grid gap-4">
+          {sourcePoints.map((point, index) => {
+            const status = getVerificationStatus(point);
+            const StatusIcon = status.icon;
+            
+            return (
+              <Card key={point.id} className={`p-6 transition-all ${
+                point.status === 'UNVERIFIED' ? 'border-warning/30 bg-warning/5' : 
+                point.status === 'NEEDS REVIEW' ? 'border-orange-300/30 bg-orange-50/5' : 'hover:bg-card-hover'
+              }`}>
+                <div className="flex items-start gap-4">
+                  <div className="flex items-center gap-2 mt-1">
+                    <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
+                    <span className="text-sm font-medium text-muted-foreground min-w-[2rem]">
+                      S{index + 1}
+                    </span>
+                  </div>
+                  
+                  <div className="flex-1 space-y-3">
+                    {editingId === point.id ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className="min-h-[80px]"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={saveEdit}>
+                            <Save className="w-4 h-4 mr-1" />
+                            Save
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeKeyPoint(point.id)}
-                          >
-                            <X className="w-4 h-4" />
+                          <Button variant="outline" size="sm" onClick={cancelEdit}>
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
                           </Button>
                         </div>
                       </div>
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <p className="text-base leading-relaxed">{point.text}</p>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                              <StatusIcon className={`w-4 h-4 ${status.color}`} />
+                              <span className={`text-sm font-medium ${status.color}`}>
+                                {status.label}
+                              </span>
+                            </div>
+                            
+                            <Badge variant="outline" className="text-xs">
+                              {point.source}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditing(point)}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeKeyPoint(point.id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="mt-1">
+                    <Checkbox
+                      checked={point.status === 'VERIFIED'}
+                      onCheckedChange={(checked) => 
+                        updateKeyPoint(point.id, { 
+                          status: checked ? 'VERIFIED' : 'UNVERIFIED' 
+                        })
+                      }
+                    />
+                  </div>
                 </div>
-                
-                <div className="mt-1">
-                  <Checkbox
-                    checked={point.verified}
-                    onCheckedChange={(checked) => 
-                      updateKeyPoint(point.id, { verified: checked as boolean })
-                    }
-                  />
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>{keyPoints.filter(p => p.verified).length} of {keyPoints.length} verified</span>
-          <span>{keyPoints.filter(p => p.sources.length === 0).length} need sources</span>
+          <span>{keyPoints.filter(p => p.status === 'VERIFIED').length} of {keyPoints.length} verified</span>
+          <span>{keyPoints.filter(p => p.status === 'UNVERIFIED').length} unverified</span>
+          <span>{keyPoints.filter(p => p.status === 'NEEDS REVIEW').length} need review</span>
         </div>
         <Button
           variant="outline"

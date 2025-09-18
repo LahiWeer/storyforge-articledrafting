@@ -16,8 +16,9 @@ interface StoryData {
   keyPoints: Array<{
     id: string;
     text: string;
-    sources: string[];
-    verified: boolean;
+    source: string;
+    status: 'VERIFIED' | 'UNVERIFIED' | 'NEEDS REVIEW';
+    type: 'transcript' | 'source';
   }>;
   storyDirection: {
     tone: string;
@@ -85,25 +86,15 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
 
   const generateMockDraft = (data: StoryData): string => {
     const { storyDirection, keyPoints, sources, transcript } = data;
-    const verifiedKeyPoints = keyPoints.filter(point => point.verified);
+    const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
     
     // Get source attributions for verified points
     const getSourceAttribution = (keyPoint: any) => {
-      if (keyPoint.sources && keyPoint.sources.length > 0) {
-        const sourceId = keyPoint.sources[0];
-        const source = sources.find(s => s.id === sourceId);
-        if (source) {
-          switch (source.type) {
-            case 'pdf':
-            case 'url':
-              return `Based on ${source.title}`;
-            case 'youtube':
-              return `According to the video interview`;
-            case 'text':
-              return `Based on the provided documentation`;
-            default:
-              return `According to the interview`;
-          }
+      if (keyPoint.source) {
+        if (keyPoint.type === 'transcript') {
+          return `According to the interviewee`;
+        } else {
+          return `Based on ${keyPoint.source}`;
         }
       }
       return `According to the interviewee`;
@@ -403,7 +394,7 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
   const generateMockSourceMapping = (data: StoryData): Record<string, string[]> => {
     return {
       'paragraph-1': [data.sources[0]?.id || ''],
-      'paragraph-2': data.keyPoints.slice(0, 2).map(kp => kp.sources[0]).filter(Boolean),
+      'paragraph-2': data.keyPoints.slice(0, 2).map(kp => kp.source).filter(Boolean),
       'paragraph-3': [data.sources[0]?.id || ''],
     };
   };
@@ -482,7 +473,7 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
       <div className="grid md:grid-cols-3 gap-4 text-center">
         <Card className="p-4">
           <h4 className="font-medium mb-1">Key Points</h4>
-          <p className="text-2xl font-bold text-primary">{storyData.keyPoints.filter(point => point.verified).length}</p>
+          <p className="text-2xl font-bold text-primary">{storyData.keyPoints.filter(point => point.status === 'VERIFIED').length}</p>
           <p className="text-xs text-muted-foreground">Incorporated</p>
         </Card>
         <Card className="p-4">

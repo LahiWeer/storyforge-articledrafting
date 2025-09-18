@@ -21,8 +21,9 @@ interface StoryData {
   keyPoints: Array<{
     id: string;
     text: string;
-    sources: string[];
-    verified: boolean;
+    source: string;
+    status: 'VERIFIED' | 'UNVERIFIED' | 'NEEDS REVIEW';
+    type: 'transcript' | 'source';
   }>;
   storyDirection: {
     tone: string;
@@ -69,7 +70,7 @@ export const StoryGenerator = () => {
       case 2:
         return storyData.sources.length > 0;
       case 3:
-        return storyData.keyPoints.filter(point => point.verified).length > 0;
+        return storyData.keyPoints.filter(point => point.status === 'VERIFIED').length > 0;
       case 4:
         return storyData.storyDirection.tone && storyData.storyDirection.angle;
       case 5:

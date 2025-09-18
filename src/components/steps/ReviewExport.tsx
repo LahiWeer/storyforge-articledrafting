@@ -27,8 +27,9 @@ interface StoryData {
   keyPoints: Array<{
     id: string;
     text: string;
-    sources: string[];
-    verified: boolean;
+    source: string;
+    status: 'VERIFIED' | 'UNVERIFIED' | 'NEEDS REVIEW';
+    type: 'transcript' | 'source';
   }>;
   storyDirection: {
     tone: string;
@@ -100,7 +101,7 @@ ${storyData.sources.map((source, index) =>
 ## Key Points Reference
 
 ${storyData.keyPoints.map((point, index) => 
-  `${index + 1}. ${point.text} ${point.verified ? '✓' : '⚠️'}`
+  `${index + 1}. ${point.text} ${point.status === 'VERIFIED' ? '✓' : '⚠️'}`
 ).join('\n')}
 
 ---
@@ -154,7 +155,7 @@ ${storyData.keyPoints.map((point, index) =>
   const getVerificationStats = () => {
     const totalQuotes = quoteResults.length;
     const verifiedQuotes = quoteResults.filter(r => r.verified).length;
-    const unverifiedKeyPoints = storyData.keyPoints.filter(kp => kp.sources.length === 0).length;
+    const unverifiedKeyPoints = storyData.keyPoints.filter(kp => kp.status !== 'VERIFIED').length;
     
     return { totalQuotes, verifiedQuotes, unverifiedKeyPoints };
   };
