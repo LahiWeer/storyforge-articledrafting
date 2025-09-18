@@ -109,30 +109,75 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
       return `According to the interviewee`;
     };
 
-    // Group key points into thematic sections
+    // Group key points into thematic sections with logical connections
     const groupKeyPoints = () => {
       const themes: Record<string, any[]> = {};
+      const narrativeOrder = ['Foundation & Strategy', 'Growth & Performance', 'Innovation & Technology', 'Overcoming Challenges', 'Team & Culture', 'Market Impact'];
+      
       verifiedKeyPoints.forEach(point => {
-        // Simple thematic grouping based on content
         const text = point.text.toLowerCase();
-        if (text.includes('growth') || text.includes('revenue') || text.includes('expansion') || text.includes('increase')) {
+        let assigned = false;
+        
+        // More sophisticated thematic grouping with narrative flow in mind
+        if (text.includes('strategy') || text.includes('vision') || text.includes('foundation') || text.includes('approach') || text.includes('plan')) {
+          themes['Foundation & Strategy'] = themes['Foundation & Strategy'] || [];
+          themes['Foundation & Strategy'].push(point);
+          assigned = true;
+        }
+        
+        if (!assigned && (text.includes('growth') || text.includes('revenue') || text.includes('expansion') || text.includes('increase') || text.includes('performance') || text.includes('results'))) {
           themes['Growth & Performance'] = themes['Growth & Performance'] || [];
           themes['Growth & Performance'].push(point);
-        } else if (text.includes('challenge') || text.includes('obstacle') || text.includes('problem') || text.includes('issue')) {
-          themes['Overcoming Challenges'] = themes['Overcoming Challenges'] || [];
-          themes['Overcoming Challenges'].push(point);
-        } else if (text.includes('innovation') || text.includes('technology') || text.includes('ai') || text.includes('feature')) {
+          assigned = true;
+        }
+        
+        if (!assigned && (text.includes('innovation') || text.includes('technology') || text.includes('ai') || text.includes('feature') || text.includes('product') || text.includes('development'))) {
           themes['Innovation & Technology'] = themes['Innovation & Technology'] || [];
           themes['Innovation & Technology'].push(point);
-        } else if (text.includes('team') || text.includes('staff') || text.includes('hire') || text.includes('culture')) {
+          assigned = true;
+        }
+        
+        if (!assigned && (text.includes('challenge') || text.includes('obstacle') || text.includes('problem') || text.includes('issue') || text.includes('overcome') || text.includes('solution'))) {
+          themes['Overcoming Challenges'] = themes['Overcoming Challenges'] || [];
+          themes['Overcoming Challenges'].push(point);
+          assigned = true;
+        }
+        
+        if (!assigned && (text.includes('team') || text.includes('staff') || text.includes('hire') || text.includes('culture') || text.includes('people') || text.includes('leadership'))) {
           themes['Team & Culture'] = themes['Team & Culture'] || [];
           themes['Team & Culture'].push(point);
-        } else {
+          assigned = true;
+        }
+        
+        if (!assigned && (text.includes('market') || text.includes('industry') || text.includes('customer') || text.includes('client') || text.includes('impact') || text.includes('community'))) {
+          themes['Market Impact'] = themes['Market Impact'] || [];
+          themes['Market Impact'].push(point);
+          assigned = true;
+        }
+        
+        // Default fallback
+        if (!assigned) {
           themes['Strategic Development'] = themes['Strategic Development'] || [];
           themes['Strategic Development'].push(point);
         }
       });
-      return themes;
+      
+      // Return themes in narrative order for better story flow
+      const orderedThemes: Record<string, any[]> = {};
+      narrativeOrder.forEach(themeName => {
+        if (themes[themeName] && themes[themeName].length > 0) {
+          orderedThemes[themeName] = themes[themeName];
+        }
+      });
+      
+      // Add any remaining themes not in the standard order
+      Object.keys(themes).forEach(themeName => {
+        if (!orderedThemes[themeName] && themes[themeName].length > 0) {
+          orderedThemes[themeName] = themes[themeName];
+        }
+      });
+      
+      return orderedThemes;
     };
 
     // Get sample quotes from transcript
@@ -200,64 +245,111 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
       const sections = [];
       const quotes = getSampleQuotes();
       let quoteIndex = 0;
+      const themeNames = Object.keys(themes);
       
-      for (const [themeName, points] of Object.entries(themes)) {
+      for (let themeIndex = 0; themeIndex < themeNames.length; themeIndex++) {
+        const themeName = themeNames[themeIndex];
+        const points = themes[themeName];
         if (points.length === 0) continue;
         
         let section = '';
-        
-        // Create narrative paragraphs for each theme
         const paragraphs = [];
         
-        // First paragraph introduces the theme
+        // Create smooth transition from previous theme
+        let transitionPhrase = '';
+        if (themeIndex > 0) {
+          const transitionMap: Record<string, Record<string, string>> = {
+            'Foundation & Strategy': {
+              default: 'Building on this foundation,'
+            },
+            'Growth & Performance': {
+              'Foundation & Strategy': 'These strategic foundations have translated into measurable outcomes.',
+              default: 'The results of these efforts are evident in performance metrics.'
+            },
+            'Innovation & Technology': {
+              'Growth & Performance': 'This growth trajectory has been supported by technological advancement.',
+              'Foundation & Strategy': 'The strategic framework has enabled innovative approaches.',
+              default: 'Innovation has emerged as a key differentiator.'
+            },
+            'Overcoming Challenges': {
+              'Innovation & Technology': 'However, the path to innovation has not been without obstacles.',
+              'Growth & Performance': 'Yet this success story includes navigating significant challenges.',
+              default: 'The journey has required overcoming substantial obstacles.'
+            },
+            'Team & Culture': {
+              'Overcoming Challenges': 'Central to overcoming these challenges has been the human element.',
+              'Innovation & Technology': 'The success of these innovations depends fundamentally on people.',
+              default: 'The organizational culture has been instrumental in this transformation.'
+            },
+            'Market Impact': {
+              'Team & Culture': 'This internal development has created external ripple effects.',
+              'Growth & Performance': 'These achievements extend beyond internal metrics to market influence.',
+              default: 'The broader implications reach into market dynamics.'
+            }
+          };
+          
+          const previousTheme = themeNames[themeIndex - 1];
+          transitionPhrase = transitionMap[themeName]?.[previousTheme] || transitionMap[themeName]?.default || 'Expanding on these developments,';
+        }
+        
+        // Generate opening paragraph for theme
         const primaryPoint = points[0];
         const attribution = getSourceAttribution(primaryPoint);
         
         let themeIntro = '';
         switch (themeName) {
-          case 'Growth & Performance':
-            themeIntro = `The trajectory of organizational performance reveals a pattern of sustained development that extends across multiple business dimensions. ${attribution}, ${primaryPoint.text.toLowerCase()} represents more than isolated success—it reflects systematic execution of strategic priorities that have compounded over time.`;
+          case 'Foundation & Strategy':
+            themeIntro = `${transitionPhrase} ${attribution}, ${primaryPoint.text} This strategic foundation represents more than tactical planning—it reflects a comprehensive understanding of market dynamics and organizational capabilities that guides decision-making across multiple dimensions.`;
             break;
-          case 'Overcoming Challenges':
-            themeIntro = `Strategic challenges often serve as catalysts for organizational evolution, transforming potential obstacles into competitive advantages. ${attribution}, ${primaryPoint.text.toLowerCase()} demonstrates the methodical approach taken to address complex business requirements while maintaining operational momentum.`;
+          case 'Growth & Performance':
+            themeIntro = `${transitionPhrase} ${attribution}, ${primaryPoint.text} The trajectory reveals systematic execution that has compounded over time, creating momentum that extends beyond individual metrics to encompass organizational transformation.`;
             break;
           case 'Innovation & Technology':
-            themeIntro = `The integration of technological advancement with strategic business objectives creates opportunities for transformative change. ${attribution}, ${primaryPoint.text.toLowerCase()} illustrates how innovation serves not merely as technological upgrade but as fundamental business transformation.`;
+            themeIntro = `${transitionPhrase} ${attribution}, ${primaryPoint.text} This technological integration serves not merely as operational upgrade but as fundamental business transformation, reshaping how opportunities are identified and pursued.`;
+            break;
+          case 'Overcoming Challenges':
+            themeIntro = `${transitionPhrase} ${attribution}, ${primaryPoint.text} The approach to these obstacles demonstrates methodical problem-solving that transforms potential setbacks into competitive advantages.`;
             break;
           case 'Team & Culture':
-            themeIntro = `Organizational development extends beyond processes and systems to encompass the human elements that drive sustained performance. ${attribution}, ${primaryPoint.text.toLowerCase()} reflects the strategic approach to building capabilities that support long-term objectives.`;
+            themeIntro = `${transitionPhrase} ${attribution}, ${primaryPoint.text} The human dimension of organizational development extends beyond processes to encompass the capabilities and mindset that drive sustained performance.`;
+            break;
+          case 'Market Impact':
+            themeIntro = `${transitionPhrase} ${attribution}, ${primaryPoint.text} These developments create value that extends beyond organizational boundaries to influence broader market dynamics and industry standards.`;
             break;
           default:
-            themeIntro = `Strategic development encompasses multiple dimensions of organizational evolution, each contributing to comprehensive business transformation. ${attribution}, ${primaryPoint.text.toLowerCase()} represents one element of a broader strategic framework.`;
+            themeIntro = `${transitionPhrase} ${attribution}, ${primaryPoint.text} This development represents one element of a comprehensive approach to organizational evolution.`;
         }
         
         paragraphs.push(themeIntro);
         
-        // Additional paragraphs for remaining points in theme
+        // Develop additional content with remaining points
         if (points.length > 1) {
           const remainingPoints = points.slice(1);
-          let paragraph = '';
+          let developmentParagraph = '';
+          
+          // Weave quotes naturally into the narrative
+          const shouldIncludeQuote = quotes.length > quoteIndex && quoteIndex < 2 && transcript;
+          const quotePosition = Math.floor(remainingPoints.length / 2); // Place quote in middle of points
           
           remainingPoints.forEach((point, index) => {
             const pointAttribution = getSourceAttribution(point);
-            if (index === 0) {
-              paragraph = `${pointAttribution}, ${point.text.toLowerCase()}`;
-            } else {
-              paragraph += ` Additionally, ${pointAttribution}, ${point.text.toLowerCase()}`;
-            }
             
-            if (index === remainingPoints.length - 1) {
-              paragraph += `. These developments collectively demonstrate the integrated nature of strategic execution, where individual initiatives contribute to broader organizational objectives.`;
+            if (index === 0) {
+              developmentParagraph = `The depth of this transformation becomes evident through additional insights. ${pointAttribution}, ${point.text}`;
+            } else if (index === quotePosition && shouldIncludeQuote) {
+              developmentParagraph += ` "${quotes[quoteIndex]}," reflecting the strategic thinking that guides these initiatives. Furthermore, ${pointAttribution}, ${point.text}`;
+              quoteIndex++;
+            } else {
+              const connectors = ['Additionally,', 'Moreover,', 'Complementing this,', 'Building on this foundation,'];
+              const connector = connectors[Math.min(index - 1, connectors.length - 1)];
+              developmentParagraph += ` ${connector} ${pointAttribution}, ${point.text}`;
             }
           });
           
-          // Add quote if available and haven't used both yet
-          if (quotes.length > quoteIndex && quoteIndex < 2) {
-            paragraph += ` ${transcript ? `"${quotes[quoteIndex]}," providing insight into the strategic thinking that guides these initiatives.` : ''}`;
-            quoteIndex++;
-          }
+          // Close the development paragraph with forward-looking insight
+          developmentParagraph += ` These interconnected developments create a framework for sustained advancement, where individual achievements contribute to broader organizational capabilities and market positioning.`;
           
-          if (paragraph) paragraphs.push(paragraph);
+          paragraphs.push(developmentParagraph);
         }
         
         section = paragraphs.join('\n\n');
