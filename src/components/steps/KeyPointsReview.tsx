@@ -47,32 +47,62 @@ export const KeyPointsReview = ({
       const mockKeyPoints: KeyPoint[] = [
         {
           id: '1',
-          text: 'The interviewee emphasized the importance of user feedback in product development',
+          text: 'User feedback drives product development decisions',
           sources: [sources[0]?.id || ''],
           verified: true,
         },
         {
           id: '2',
-          text: 'Market research shows 78% increase in customer satisfaction after implementing new features',
+          text: '78% increase in customer satisfaction post-feature implementation',
           sources: [sources[0]?.id || ''],
           verified: false,
         },
         {
           id: '3',
-          text: 'Company plans to expand to three new markets in Q2 2024',
+          text: 'Q2 2024 expansion planned for three new markets',
           sources: [],
           verified: false,
         },
         {
           id: '4',
-          text: 'Technical challenges included scalability issues with the current infrastructure',
+          text: 'Infrastructure scalability issues pose technical challenges',
           sources: [sources[0]?.id || ''],
           verified: true,
         },
         {
           id: '5',
-          text: 'Team size doubled from 12 to 24 employees in the past year',
+          text: 'Team doubled from 12 to 24 employees annually',
           sources: [],
+          verified: false,
+        },
+        {
+          id: '6',
+          text: 'Revenue growth exceeded 150% year-over-year',
+          sources: [sources[1]?.id || ''],
+          verified: true,
+        },
+        {
+          id: '7',
+          text: 'Mobile app usage increased 40% in last quarter',
+          sources: [sources[0]?.id || ''],
+          verified: false,
+        },
+        {
+          id: '8',
+          text: 'Customer acquisition cost reduced by 25%',
+          sources: [sources[1]?.id || ''],
+          verified: true,
+        },
+        {
+          id: '9',
+          text: 'New AI features launched to enhance user experience',
+          sources: [],
+          verified: false,
+        },
+        {
+          id: '10',
+          text: 'Partnership with major tech company finalized',
+          sources: [sources[0]?.id || ''],
           verified: false,
         },
       ];
