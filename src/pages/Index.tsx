@@ -5,42 +5,30 @@ import { StoryGenerator } from "@/components/StoryGenerator";
 import { Navigation } from "@/components/Navigation";
 import { useState } from "react";
 import { FileText, Users, Shield, Zap } from "lucide-react";
-
 const Index = () => {
   const [showGenerator, setShowGenerator] = useState(false);
-
   const handleNavigation = (section: 'home' | 'generator') => {
     setShowGenerator(section === 'generator');
   };
-
   if (showGenerator) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navigation 
-          currentSection="generator" 
-          onNavigate={handleNavigation} 
-        />
+    return <div className="min-h-screen bg-background">
+        <Navigation currentSection="generator" onNavigate={handleNavigation} />
         <StoryGenerator />
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Navigation 
-        currentSection="home" 
-        onNavigate={handleNavigation} 
-      />
+  return <div className="min-h-screen bg-background">
+      <Navigation currentSection="home" onNavigate={handleNavigation} />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-hero">
         <div className="absolute inset-0 bg-black/20"></div>
-        <div 
-          className="absolute inset-0 bg-cover bg-center opacity-50"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        />
+        <div className="absolute inset-0 bg-cover bg-center opacity-50" style={{
+        backgroundImage: `url(${heroImage})`
+      }} />
         <div className="relative container mx-auto px-6 py-24 lg:py-32">
           <div className="max-w-4xl mx-auto text-center text-white">
-            <h1 className="text-5xl lg:text-7xl font-heading font-bold mb-6 leading-tight" style={{ color: '#2c2c2c' }}>
+            <h1 className="text-5xl lg:text-7xl font-heading font-bold mb-6 leading-tight" style={{
+            color: '#2c2c2c'
+          }}>
               Transform Interviews into 
               <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
                 Story-Driven Articles
@@ -51,11 +39,7 @@ const Index = () => {
               fact-checked stories with full source verification and human oversight.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                className="text-lg px-8 py-4 bg-white text-gray-900 hover:bg-gray-100"
-                onClick={() => setShowGenerator(true)}
-              >
+              <Button size="lg" className="text-lg px-8 py-4 bg-white text-gray-900 hover:bg-gray-100" onClick={() => setShowGenerator(true)}>
                 Start Creating Stories
               </Button>
             </div>
@@ -121,7 +105,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-secondary">
+      <section className="py-24 bg-gradient-secondary bg-green-300">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-heading font-bold mb-6 text-secondary-foreground">
             Ready to Transform Your Interviews?
@@ -130,17 +114,11 @@ const Index = () => {
             Join journalists and content creators who trust our platform for 
             accurate, engaging storytelling.
           </p>
-          <Button 
-            size="lg" 
-            className="text-lg px-8 py-4 bg-primary hover:bg-primary-hover"
-            onClick={() => setShowGenerator(true)}
-          >
+          <Button size="lg" className="text-lg px-8 py-4 bg-primary hover:bg-primary-hover" onClick={() => setShowGenerator(true)}>
             Get Started Now
           </Button>
         </div>
       </section>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
