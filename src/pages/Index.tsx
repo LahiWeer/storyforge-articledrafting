@@ -30,7 +30,7 @@ const Index = () => {
             color: '#1976D2'
           }}>
               Transform Interviews into 
-              <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-[8E44AD] text-[#446cad]">
+              <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-[8E44AD] text-[#d2f8ff]">
                 Story-Driven Articles
               </span>
             </h1>
