@@ -607,8 +607,8 @@ ARTICLE STRUCTURE REQUIREMENTS:
    - Group related key points into meaningful themes
    - Develop each theme into full paragraphs with explanation and context
    - Use smooth transitions for cohesive narrative flow
-   - Incorporate source references naturally
-   - Include 1-2 direct quotes from the transcript authentically
+   - Incorporate source references naturally with proper attribution
+   - Include 1-2 direct quotes from the transcript that flow naturally within the narrative
 
 3. CONCLUSION (1-2 paragraphs):
    - Provide forward-looking commentary on significance
@@ -622,6 +622,14 @@ WRITING GUIDELINES:
 - Include specific details and evidence
 - Maintain journalistic credibility
 - Connect general knowledge only when it clearly supports the key points
+
+CRITICAL: NATURAL SOURCE ATTRIBUTION:
+When incorporating points or quotes from the transcript, mention the source context naturally:
+- If transcript is from an interview: "During the interview, [person/team] explained..." or "[Person/Team] noted that..."
+- If transcript is from a meeting: "In the discussion, participants highlighted..." or "Team members emphasized..."
+- If transcript is from a presentation: "The speaker outlined..." or "[Name] presented..."
+- Do NOT insert quotes mechanically - they must flow naturally within the narrative
+- Use attribution phrases like: "According to [source]...", "As [person] described...", "[Team] revealed...", "The conversation highlighted..."
 
 FORMAT YOUR RESPONSE AS JSON:
 {
