@@ -28,7 +28,7 @@ const Index = () => {
     <div className="max-w-4xl mx-auto text-center text-white">
         <h1 className="text-5xl lg:text-7xl font-heading font-bold mb-10 leading-tight">
             <span style={{ color: '#1976d2' }}>Transform Interviews into</span> 
-            <span className="block mt-4" style={{ color: '#d2c319' }}>
+            <span className="block mt-4" style={{ color: '#FFC107' }}>
                 Story-Driven Articles
             </span>
         </h1>
