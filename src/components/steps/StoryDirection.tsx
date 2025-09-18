@@ -12,7 +12,7 @@ interface StoryDirectionData {
   angle: string;
   length: string;
   customPrompt?: string;
-  customAngle?: string[];
+  customAngle?: string;
 }
 
 interface StoryDirectionProps {
@@ -47,7 +47,7 @@ const lengthOptions = [
 
 export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionProps) => {
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
-  const [showCustomAngle, setShowCustomAngle] = useState('');
+  const [showCustomAngle, setShowCustomAngle] = useState(false);
 
   const updateDirection = (updates: Partial<StoryDirectionData>) => {
     onDirectionChange({ ...direction, ...updates });
@@ -130,6 +130,35 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
             ))}
           </RadioGroup>
 
+          {/* Custom Story Angle */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-medium">Custom Story Angle</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCustomAngle(!showCustomAngle)}
+              >
+                {showCustomAngle ? 'Hide' : 'Add Custom Angle'}
+              </Button>
+            </div>
+            
+            {showCustomAngle && (
+              <div className="space-y-2">
+                <Label htmlFor="custom-angle">Describe your unique story perspective</Label>
+                <Textarea
+                  id="custom-angle"
+                  value={direction.customAngle || ''}
+                  onChange={(e) => updateDirection({ customAngle: e.target.value })}
+                  placeholder="e.g., 'Focus on the environmental impact of the innovation', 'Explore the competitive landscape and market positioning', 'Highlight the personal journey and lessons learned'..."
+                  className="min-h-[80px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Define a custom angle that will shape the narrative focus of your article
+                </p>
+              </div>
+            )}
+          </div>
         </Card>
 
         {/* Length Selection */}
