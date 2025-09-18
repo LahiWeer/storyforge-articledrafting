@@ -14,81 +14,26 @@ export const TranscriptInput = ({ transcript, onTranscriptChange }: TranscriptIn
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
-  const handleFileUpload = async (file: File) => {
-    const fileExtension = file.name.toLowerCase().split('.').pop();
-    const supportedExtensions = ['txt', 'pdf', 'docx'];
-    
-    if (!supportedExtensions.includes(fileExtension || '')) {
+  const handleFileUpload = (file: File) => {
+    if (!file.type.includes('text') && !file.name.endsWith('.txt')) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a .txt, .pdf, or .docx file",
+        description: "Please upload a text file (.txt)",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      if (fileExtension === 'txt' || file.type.includes('text')) {
-        // Handle text files directly
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const content = e.target?.result as string;
-          onTranscriptChange(content);
-          toast({
-            title: "Transcript uploaded",
-            description: "Your transcript has been successfully loaded",
-          });
-        };
-        reader.readAsText(file);
-      } else {
-        // Handle PDF and DOCX files with document parsing
-        toast({
-          title: "Processing document",
-          description: "Extracting text from your document...",
-        });
-
-        try {
-          // Create a FormData object to upload the file
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          // Create a temporary path in user-uploads
-          const tempPath = `user-uploads://${file.name}`;
-          
-          // For now, we'll create a blob URL and copy the file
-          const arrayBuffer = await file.arrayBuffer();
-          const blob = new Blob([arrayBuffer], { type: file.type });
-          
-          // Note: In a real implementation, this would upload to user-uploads://
-          // For now, we'll simulate successful parsing
-          
-          // Simulate document parsing (this would use document--parse_document)
-          setTimeout(() => {
-            // This is a placeholder - in real implementation, you'd get actual extracted text
-            const simulatedExtractedText = "This is where the extracted text from your PDF or DOCX file would appear. The document parsing functionality will extract all text content without any formatting markers or wrapper text.";
-            
-            onTranscriptChange(simulatedExtractedText);
-            toast({
-              title: "Document parsed successfully",
-              description: `Text extracted from ${file.name}`,
-            });
-          }, 2000);
-          
-        } catch (parseError) {
-          toast({
-            title: "Parsing failed",
-            description: "Could not extract text from the document",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      onTranscriptChange(content);
       toast({
-        title: "Upload failed",
-        description: "Could not process the uploaded file",
-        variant: "destructive",
+        title: "Transcript uploaded",
+        description: "Your transcript has been successfully loaded",
       });
-    }
+    };
+    reader.readAsText(file);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -150,7 +95,7 @@ export const TranscriptInput = ({ transcript, onTranscriptChange }: TranscriptIn
               <Upload className="w-12 h-12 text-primary mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">Upload Transcript File</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Drag and drop your .txt, .pdf, or .docx file here or click to browse
+                Drag and drop your .txt file here or click to browse
               </p>
               <Button variant="outline" size="sm">
                 Choose File
@@ -159,7 +104,7 @@ export const TranscriptInput = ({ transcript, onTranscriptChange }: TranscriptIn
             <input
               id="transcript-upload"
               type="file"
-              accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept=".txt,text/plain"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -219,7 +164,7 @@ export const TranscriptInput = ({ transcript, onTranscriptChange }: TranscriptIn
           <input
             id="transcript-upload"
             type="file"
-            accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept=".txt,text/plain"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
