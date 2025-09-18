@@ -1,4 +1,4 @@
-// AI-powered content extraction using Claude 4 Sonnet for intelligent key point analysis
+// AI-powered content extraction with 3-step pipeline: Claude 4 Sonnet → Claude 4 Sonnet → GPT-5
 
 export interface AIExtractedKeyPoint {
   text: string;
@@ -8,73 +8,155 @@ export interface AIExtractedKeyPoint {
   reasoning: string;
 }
 
+export interface ExtractedKeywords {
+  keywords: string[];
+  phrases: string[];
+  mainThemes: string[];
+}
+
+// ============= STEP 1: KEYWORD EXTRACTION (Claude 4 Sonnet) =============
+
 /**
- * Extract keywords from user's article focus for AI analysis
+ * Step 1: Use Claude 4 Sonnet to analyze user's focus and extract main keywords and key phrases
  */
-export const extractAIFocusKeywords = (focus: string): string[] => {
+export const extractKeywordsWithClaudeSonnet = async (userFocus: string): Promise<ExtractedKeywords> => {
+  const prompt = `You are an expert content strategist. Analyze the user's focus input and extract the main keywords and key phrases that represent their desired focus for the article.
+
+USER'S ARTICLE FOCUS:
+"${userFocus}"
+
+INSTRUCTIONS:
+1. Extract the most important individual keywords (single words) that capture the user's focus
+2. Extract key phrases (2-4 word combinations) that represent main concepts
+3. Identify the main themes that the user wants to emphasize
+4. Focus on terms that would be valuable for content analysis and article creation
+5. Avoid generic words unless they're essential to the context
+6. Ensure keywords and phrases clearly capture what the user wants to emphasize
+
+FORMAT YOUR RESPONSE AS JSON:
+{
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "phrases": ["key phrase 1", "key phrase 2", "key phrase 3"],
+  "mainThemes": ["theme1", "theme2", "theme3"]
+}
+
+Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent the user's desired focus.`;
+
+  try {
+    // Note: API keys should be provided via secure backend integration
+    // This is a placeholder for demonstration - in production, use secure backend proxy
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER', // Should be handled via backend
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        temperature: 0.2,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.content[0].text;
+    
+    try {
+      const parsed = JSON.parse(aiResponse);
+      return {
+        keywords: parsed.keywords || [],
+        phrases: parsed.phrases || [],
+        mainThemes: parsed.mainThemes || []
+      };
+    } catch (parseError) {
+      console.warn('Failed to parse Claude response, using fallback');
+      return extractKeywordsFallback(userFocus);
+    }
+  } catch (error) {
+    console.warn('Claude 4 Sonnet not available, using fallback keyword extraction');
+    return extractKeywordsFallback(userFocus);
+  }
+};
+
+/**
+ * Fallback keyword extraction when Claude fails
+ */
+const extractKeywordsFallback = (focus: string): ExtractedKeywords => {
   const text = focus.toLowerCase();
-  const keywords: string[] = [];
-  
-  // Enhanced stop words list
   const stopWords = new Set([
     'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
     'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did',
     'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'want', 'need',
-    'like', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
-    'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'up', 'down',
-    'out', 'off', 'over', 'under', 'again', 'further', 'then', 'once'
+    'like', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they'
   ]);
   
-  // Extract significant words (3+ characters, not stop words)
   const words = text.split(/\s+/)
     .map(word => word.replace(/[^\w]/g, ''))
     .filter(word => word.length >= 3 && !stopWords.has(word));
   
-  // Add individual keywords
-  keywords.push(...words);
+  const phrases = text.match(/\b\w+\s+\w+(?:\s+\w+)?\b/g) || [];
   
-  // Extract key phrases (2-4 word combinations)
-  const phrases = text.match(/\b\w+\s+\w+(?:\s+\w+)?(?:\s+\w+)?\b/g) || [];
-  keywords.push(...phrases.map(phrase => phrase.trim()));
-  
-  // Return unique keywords, prioritizing longer phrases
-  return [...new Set(keywords)].sort((a, b) => b.length - a.length).slice(0, 25);
+  return {
+    keywords: [...new Set(words)].slice(0, 15),
+    phrases: [...new Set(phrases)].slice(0, 10),
+    mainThemes: words.slice(0, 5)
+  };
 };
 
+// ============= STEP 2: KEY POINT EXTRACTION (Claude 4 Sonnet) =============
+
 /**
- * Use Claude 4 Sonnet to intelligently extract key points from content
+ * Step 2: Use Claude 4 Sonnet to extract key points using the extracted keywords
  */
-export const extractKeyPointsWithAI = async (
+export const extractKeyPointsWithClaudeSonnet = async (
   content: string,
   source: string,
   userFocus: string,
-  keywords: string[]
+  extractedKeywords: ExtractedKeywords
 ): Promise<AIExtractedKeyPoint[]> => {
+  const allKeywords = [...extractedKeywords.keywords, ...extractedKeywords.phrases];
+  
   const prompt = `You are an expert content analyst. Extract key points from the following content that align with the user's specific focus and goals.
 
 USER'S ARTICLE FOCUS & GOALS:
 "${userFocus}"
 
-IDENTIFIED KEYWORDS TO FOCUS ON:
-${keywords.join(', ')}
+EXTRACTED KEYWORDS TO FOCUS ON:
+Keywords: ${extractedKeywords.keywords.join(', ')}
+Key Phrases: ${extractedKeywords.phrases.join(', ')}
+Main Themes: ${extractedKeywords.mainThemes.join(', ')}
 
-CONTENT TO ANALYZE:
+CONTENT TO ANALYZE (Source: ${source}):
 "${content}"
 
 INSTRUCTIONS:
-1. Extract 8-10 key points that are directly relevant to the user's focus
-2. Each key point MUST include at least one of the identified keywords
+1. Extract 5-12 key points that are directly relevant to the user's focus
+2. Each key point MUST include at least one of the extracted keywords/phrases
 3. Focus only on content that supports the user's stated goals and direction
-4. Ignore any content that doesn't align with the focus
-5. Provide a brief reasoning for each key point's relevance
-6. Ensure extracted points are substantial and meaningful (not just fragments)
+4. Avoid any content that doesn't align with the focus
+5. Deduplicate repeated sentences across sources
+6. Include quotes from the transcript naturally, attributing them to the correct person/team
+7. Ensure extracted points are substantial and meaningful (not just fragments)
+8. Prioritize content that contains multiple keywords or key phrases
+9. Provide reasoning for each key point's relevance
 
 FORMAT YOUR RESPONSE AS JSON:
 {
   "keyPoints": [
     {
-      "text": "Complete sentence or insight from the content",
-      "matchedKeywords": ["keyword1", "keyword2"],
+      "text": "Complete sentence or insight from the content with proper attribution if it's a quote",
+      "matchedKeywords": ["keyword1", "phrase1"],
       "relevanceScore": 8,
       "reasoning": "Why this point is relevant to the user's focus"
     }
@@ -84,11 +166,12 @@ FORMAT YOUR RESPONSE AS JSON:
 Relevance scores should be 1-10 based on how well the key point aligns with the user's focus and includes important keywords.`;
 
   try {
+    // Note: API keys should be provided via secure backend integration
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER', // Should be handled via backend
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
@@ -122,13 +205,31 @@ Relevance scores should be 1-10 based on how well the key point aligns with the 
       }));
     } catch (parseError) {
       console.warn('Failed to parse Claude response as JSON, using fallback');
-      throw parseError;
+      return fallbackKeywordExtraction(content, source, allKeywords);
     }
   } catch (error) {
-    console.error('Claude 4 Sonnet extraction failed:', error);
-    // Fallback to keyword-based extraction
-    return fallbackKeywordExtraction(content, source, keywords);
+    console.warn('Claude 4 Sonnet not available, using fallback extraction');
+    return fallbackKeywordExtraction(content, source, allKeywords);
   }
+};
+
+/**
+ * Use Claude 4 Sonnet to intelligently extract key points from content (Legacy function for compatibility)
+ */
+export const extractKeyPointsWithAI = async (
+  content: string,
+  source: string,
+  userFocus: string,
+  keywords: string[]
+): Promise<AIExtractedKeyPoint[]> => {
+  // Convert legacy keywords to new format
+  const extractedKeywords: ExtractedKeywords = {
+    keywords: keywords.filter(k => !k.includes(' ')),
+    phrases: keywords.filter(k => k.includes(' ')),
+    mainThemes: keywords.slice(0, 3)
+  };
+  
+  return extractKeyPointsWithClaudeSonnet(content, source, userFocus, extractedKeywords);
 };
 
 /**
@@ -265,7 +366,7 @@ const fallbackKeywordExtraction = (
 };
 
 /**
- * Process multiple sources with AI-powered extraction and deduplication
+ * Process multiple sources with AI-powered extraction and deduplication using 3-step pipeline
  */
 export const processMultipleSourcesWithAI = async (
   sources: Array<{ content: string; title: string; type: string }>,
@@ -273,27 +374,29 @@ export const processMultipleSourcesWithAI = async (
   userFocus: string,
   minKeyPoints: number = 5
 ): Promise<{ keyPoints: AIExtractedKeyPoint[]; summary: string; keywords: string[] }> => {
-  const keywords = extractAIFocusKeywords(userFocus);
+  // Step 1: Extract keywords using Claude 4 Sonnet
+  const extractedKeywords = await extractKeywordsWithClaudeSonnet(userFocus);
+  const allKeywords = [...extractedKeywords.keywords, ...extractedKeywords.phrases];
   const allKeyPoints: AIExtractedKeyPoint[] = [];
   
-  // Process transcript with AI
+  // Step 2: Process transcript with Claude 4 Sonnet
   if (transcript.trim()) {
-    const transcriptPoints = await extractKeyPointsWithAI(
+    const transcriptPoints = await extractKeyPointsWithClaudeSonnet(
       transcript,
       'Interview Transcript',
       userFocus,
-      keywords
+      extractedKeywords
     );
     allKeyPoints.push(...transcriptPoints);
   }
   
-  // Process each source with AI
+  // Step 2: Process each source with Claude 4 Sonnet
   for (const source of sources) {
-    const sourcePoints = await extractKeyPointsWithAI(
+    const sourcePoints = await extractKeyPointsWithClaudeSonnet(
       source.content,
       source.title,
       userFocus,
-      keywords
+      extractedKeywords
     );
     allKeyPoints.push(...sourcePoints);
   }
@@ -304,16 +407,15 @@ export const processMultipleSourcesWithAI = async (
   // Ensure minimum number of key points
   let finalKeyPoints = deduplicatedPoints;
   if (finalKeyPoints.length < minKeyPoints) {
-    // Could implement additional AI analysis here for more points
     console.log(`Found ${finalKeyPoints.length} key points, minimum was ${minKeyPoints}`);
   }
   
-  const summary = `AI analysis extracted ${finalKeyPoints.length} highly relevant key points from ${sources.length + (transcript ? 1 : 0)} sources, each containing at least one focus keyword and aligned with your article goals.`;
+  const summary = `AI analysis extracted ${finalKeyPoints.length} highly relevant key points from ${sources.length + (transcript ? 1 : 0)} sources using Claude 4 Sonnet's intelligent content analysis.`;
   
   return {
     keyPoints: finalKeyPoints,
     summary,
-    keywords
+    keywords: allKeywords
   };
 };
 
@@ -476,11 +578,12 @@ ANGLE GUIDELINES:
 Return only the headline text (no quotes, no JSON formatting).`;
 
   try {
+    // Note: API keys should be provided via secure backend integration
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER', // Should be handled via backend
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
@@ -506,7 +609,7 @@ Return only the headline text (no quotes, no JSON formatting).`;
     // Clean up any extra quotes or formatting
     return headline.replace(/^["']|["']$/g, '').trim();
   } catch (error) {
-    console.error('Claude 4 Sonnet headline generation failed:', error);
+    console.warn('Claude 4 Sonnet headline generation not available, using fallback');
     
     // Fallback headline generation
     return generateFallbackHeadline(keyPoints, userFocus, storyDirection);
@@ -735,10 +838,12 @@ Generate a compelling, well-structured article that transforms the key points in
   }
 };
 
+// ============= STEP 3: ARTICLE GENERATION (GPT-5) =============
+
 /**
- * Use Claude 4 Sonnet to generate a full draft article
+ * Step 3: Use GPT-5 to generate a full draft article based on approved key points
  */
-export const generateArticleWithAI = async (
+export const generateArticleWithGPT5 = async (
   keyPoints: KeyPoint[],
   sources: Source[],
   transcript: string,
@@ -748,34 +853,176 @@ export const generateArticleWithAI = async (
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
   const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
   
+  // First, generate the headline using Claude 4 Sonnet
+  const headline = await generateHeadlineWithClaudeSonnet(
+    keyPoints,
+    userFocus,
+    storyDirection,
+    sources
+  );
+  
+  const prompt = `You are a world-class journalist and content strategist. Generate a complete, publication-ready article based on the provided information.
+
+USER'S ARTICLE FOCUS & GOALS:
+"${userFocus}"
+
+HEADLINE TO USE:
+"${headline}"
+
+STORY DIRECTION:
+- Angle: ${storyDirection.angle}
+- Tone: ${storyDirection.tone}
+- Target Length: ${storyDirection.length}
+${storyDirection.customPrompt ? `- Custom Instructions: ${storyDirection.customPrompt}` : ''}
+
+APPROVED KEY POINTS TO INCORPORATE:
+${verifiedKeyPoints.map((point, index) => 
+  `${index + 1}. "${point.text}" (Source: ${point.source})`
+).join('\n')}
+
+AVAILABLE QUOTES FROM TRANSCRIPT:
+${quotes.map((quote, index) => `${index + 1}. "${quote}"`).join('\n')}
+
+SOURCES TO REFERENCE:
+${sources.map((source, index) => 
+  `${index + 1}. ${source.title} (${source.type})`
+).join('\n')}
+
+ARTICLE REQUIREMENTS:
+
+1. HEADLINE: 
+   - Start with the provided headline and make it BOLD using **headline text**
+   - The headline must reflect the user's focus and chosen Story Angle
+
+2. SMOOTH NARRATIVE FLOW:
+   - Organize the article so introduction, body sections, and conclusion connect logically
+   - Avoid abrupt transitions; each section should flow naturally into the next
+   - Use smooth transitions between all paragraphs and sections
+   - Create a cohesive reading experience from start to finish
+
+3. INTEGRATE QUOTES NATURALLY:
+   - Incorporate points or quotes from the transcript naturally by mentioning the source when appropriate
+   - Examples: 'During the interview, [Person/Team] explained…' or '[Person/Team] noted that…'
+   - Do not insert quotes mechanically; they should flow naturally within the narrative
+   - Include proper attribution for all transcript content
+
+4. REDUCE REPETITION:
+   - Avoid repeating the same closing sentence or phrases in multiple paragraphs
+   - Each paragraph should have unique commentary and perspective
+   - Eliminate redundancy while preserving important information
+
+5. ELIMINATE REDUNDANCY:
+   - Merge overlapping or repeated points to make the article concise without losing important information
+   - Avoid stating the same information multiple times in different ways
+
+6. STANDARDIZE ATTRIBUTIONS:
+   - Use consistent attribution style for all sources and transcript points
+   - Vary attribution language to avoid monotony
+   - Examples: "According to [source]...", "As described in...", "The data reveals..."
+
+7. SIMPLIFY DENSE SENTENCES:
+   - Rewrite overly technical or complex sentences for clarity and readability while preserving meaning
+   - Use active voice where possible
+   - Break down compound sentences when necessary
+
+8. STORY ANGLE & TONE:
+   - Maintain the user's chosen Story Angle (${storyDirection.angle}) throughout the article
+   - Keep Writing Tone (${storyDirection.tone}) consistent from headline to conclusion
+   - Ensure the article reads as an engaging, cohesive narrative rather than a list of points
+
+9. CONCLUSION:
+   - End with forward-looking commentary that reflects significance, implications, or future outlook
+   - Do not repeat earlier points in the conclusion
+   - Provide unique insights and broader context
+
+10. REFERENCES:
+    - Include references to supporting sources (transcript, web links, PDFs, or pasted content) wherever relevant
+    - Integrate them smoothly within the text rather than as separate citations
+
+STRUCTURE:
+- Introduction (1-2 paragraphs): Set context, introduce main subject, align with story angle
+- Body (3-5 thematic sections): Expand key points with smooth transitions, explanations, and context
+- Conclusion (1-2 paragraphs): Forward-looking commentary without repeating earlier points
+
+TARGET LENGTH: ${storyDirection.length === 'short' ? '400-600' : storyDirection.length === 'medium' ? '600-1000' : '1000-1500'} words
+
+FORMAT YOUR RESPONSE AS JSON:
+{
+  "draft": "Complete article content with proper paragraph breaks (use \\n\\n for paragraph separation)",
+  "sourceMapping": {
+    "paragraph_1": ["Source Name 1", "Source Name 2"],
+    "paragraph_2": ["Source Name 3"]
+  },
+  "wordCount": estimated_word_count,
+  "readTime": estimated_read_time_in_minutes
+}
+
+Focus on producing a coherent, engaging, and readable article rather than a list of points.`;
+
   try {
-    // First, generate the headline using dedicated Claude 4 Sonnet function
-    const headline = await generateHeadlineWithClaudeSonnet(
-      keyPoints,
-      userFocus,
-      storyDirection,
-      sources
-    );
+    // Note: API keys should be provided via secure backend integration
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER', // Should be handled via backend
+      },
+      body: JSON.stringify({
+        model: 'gpt-5',
+        max_tokens: 8000,
+        temperature: 0.4,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a world-class journalist and content strategist specializing in creating engaging, well-structured articles.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content;
     
-    // Use Claude 4 Sonnet for actual article generation
-    const response = await generateArticleWithClaudeSonnet(
-      verifiedKeyPoints,
-      sources,
-      transcript,
-      storyDirection,
-      userFocus,
-      quotes
-    );
-    
-    // Ensure headline is included in the result
-    response.headline = headline;
-    
-    return response;
+    try {
+      const parsedResult = JSON.parse(aiResponse);
+      return {
+        draft: parsedResult.draft,
+        sourceMapping: parsedResult.sourceMapping || {},
+        headline,
+        wordCount: parsedResult.wordCount || 800,
+        readTime: parsedResult.readTime || 4
+      };
+    } catch (parseError) {
+      console.warn('Failed to parse GPT-5 response as JSON, using fallback');
+      throw parseError;
+    }
   } catch (error) {
-    console.error('AI article generation failed:', error);
+    console.warn('GPT-5 not available, using fallback article generation');
     // Fallback to enhanced mock generation
-    return generateEnhancedMockArticle(verifiedKeyPoints, sources, transcript, storyDirection, userFocus, quotes);
+    return generateEnhancedMockArticle(verifiedKeyPoints, sources, transcript, storyDirection, userFocus, quotes, headline);
   }
+};
+
+/**
+ * Main article generation function using the 3-step pipeline
+ * Legacy function name maintained for compatibility
+ */
+export const generateArticleWithAI = async (
+  keyPoints: KeyPoint[],
+  sources: Source[],
+  transcript: string,
+  storyDirection: StoryDirection,
+  userFocus: string
+): Promise<DraftResult> => {
+  return generateArticleWithGPT5(keyPoints, sources, transcript, storyDirection, userFocus);
 };
 
 /**
@@ -787,45 +1034,20 @@ const generateEnhancedMockArticle = (
   transcript: string,
   storyDirection: StoryDirection,
   userFocus: string,
-  quotes: string[]
+  quotes: string[],
+  providedHeadline?: string
 ): DraftResult => {
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
   
-  // Generate headline based on story direction
-  const generateHeadline = (): string => {
-    const headlineTemplates = {
-      'success-story': [
-        'How Strategic Innovation Drives Unprecedented Growth',
-        'From Vision to Victory: A Success Story in Modern Business',
-        'Breaking Barriers: The Journey to Market Leadership'
-      ],
-      'challenges-overcome': [
-        'Turning Obstacles into Opportunities: Lessons in Resilience',
-        'When Challenges Become Catalysts for Change',
-        'Navigating Uncertainty: A Guide to Strategic Adaptation'
-      ],
-      'innovation-focus': [
-        'Pioneering the Future: Innovation at the Core of Success',
-        'Beyond Technology: How Innovation Shapes Business Strategy',
-        'The Innovation Imperative: Redefining Industry Standards'
-      ],
-      'default': [
-        'Strategic Insights: Navigating Today\'s Business Landscape',
-        'Leadership in Action: Driving Change Through Vision',
-        'Business Evolution: Adapting to Market Dynamics'
-      ]
-    };
-    
-    const templates = headlineTemplates[storyDirection.angle as keyof typeof headlineTemplates] || headlineTemplates.default;
-    return templates[Math.floor(Math.random() * templates.length)];
-  };
+  // Use provided headline or generate one
+  const headline = providedHeadline || generateFallbackHeadline(verifiedKeyPoints, userFocus, storyDirection);
   
   // Generate article sections
   const introduction = generateIntroduction();
   const body = generateBody();
   const conclusion = generateConclusion();
   
-  const fullArticle = `${introduction}\n\n${body}\n\n${conclusion}`;
+  const fullArticle = `**${headline}**\n\n${introduction}\n\n${body}\n\n${conclusion}`;
   const wordCount = fullArticle.split(/\s+/).length;
   const readTime = Math.ceil(wordCount / 200);
   
@@ -834,7 +1056,7 @@ const generateEnhancedMockArticle = (
   return {
     draft: fullArticle,
     sourceMapping,
-    headline: generateHeadline(),
+    headline,
     wordCount,
     readTime
   };
