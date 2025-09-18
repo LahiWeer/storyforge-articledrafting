@@ -12,7 +12,7 @@ interface StoryDirectionData {
   angle: string;
   length: string;
   customPrompt?: string;
- 
+  customAngle?: string[];
 }
 
 interface StoryDirectionProps {
@@ -46,6 +46,8 @@ const lengthOptions = [
 ];
 
 export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionProps) => {
+  const [showCustomPrompt, setShowCustomPrompt] = useState(false);
+  const [showCustomAngle, setShowCustomAngle] = useState('');
 
   const updateDirection = (updates: Partial<StoryDirectionData>) => {
     onDirectionChange({ ...direction, ...updates });
