@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { GripVertical, CheckCircle, AlertTriangle, Edit2, Save, X } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { GripVertical, CheckCircle, AlertTriangle, Edit2, Save, X, Target } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface KeyPoint {
@@ -38,12 +39,15 @@ export const KeyPointsReview = ({
   const [isExtracting, setIsExtracting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [articleFocus, setArticleFocus] = useState('');
+  const [showFocusInput, setShowFocusInput] = useState(true);
   const { toast } = useToast();
 
   const extractKeyPoints = async () => {
     setIsExtracting(true);
+    setShowFocusInput(false);
     
-    // Simulate AI key point extraction with separate transcript and source points
+    // Simulate AI key point extraction guided by article focus
     setTimeout(() => {
       const transcriptKeyPoints: KeyPoint[] = [
         {
@@ -168,14 +172,14 @@ export const KeyPointsReview = ({
       setIsExtracting(false);
       toast({
         title: "Key points extracted",
-        description: `Extracted ${transcriptKeyPoints.length} transcript points and ${sourceKeyPoints.length} source points`,
+        description: `Extracted ${transcriptKeyPoints.length} transcript points and ${sourceKeyPoints.length} source points based on your article focus`,
       });
     }, 3000);
   };
 
   useEffect(() => {
     if (keyPoints.length === 0 && transcript && sources.length > 0) {
-      extractKeyPoints();
+      setShowFocusInput(true);
     }
   }, [transcript, sources]);
 
@@ -230,6 +234,53 @@ export const KeyPointsReview = ({
   const transcriptPoints = keyPoints.filter(point => point.type === 'transcript');
   const sourcePoints = keyPoints.filter(point => point.type === 'source');
 
+  // Show focus input before extraction
+  if (showFocusInput && keyPoints.length === 0) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center mb-8">
+          <Target className="w-16 h-16 text-primary mx-auto mb-4" />
+          <h2 className="text-3xl font-heading font-semibold mb-2 text-foreground">
+            Set Your Article Focus
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Before we extract key points, tell us what you want your article to focus on or achieve. 
+            This will help us identify the most relevant insights from your transcript and sources.
+          </p>
+        </div>
+
+        <Card className="p-6 max-w-4xl mx-auto">
+          <div className="space-y-4">
+            <Label htmlFor="article-focus" className="text-base font-medium">
+              Article Focus & Goals
+            </Label>
+            <Textarea
+              id="article-focus"
+              placeholder="Describe what you want your article to focus on, achieve, or emphasize. For example: 'I want to highlight the company's innovation in AI technology and its impact on customer satisfaction' or 'Focus on the challenges of scaling a startup and lessons learned during rapid growth.'"
+              value={articleFocus}
+              onChange={(e) => setArticleFocus(e.target.value)}
+              className="min-h-[120px] text-base"
+            />
+            <p className="text-sm text-muted-foreground">
+              This description will guide our AI to extract key points that align with your desired story direction, tone, and angle.
+            </p>
+            
+            <div className="flex justify-center pt-4">
+              <Button
+                onClick={extractKeyPoints}
+                disabled={!articleFocus.trim()}
+                size="lg"
+                className="px-8"
+              >
+                Extract Key Points
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   if (isExtracting) {
     return (
       <div className="text-center py-12">
@@ -238,7 +289,7 @@ export const KeyPointsReview = ({
         </div>
         <h2 className="text-2xl font-heading font-semibold mb-2">Extracting Key Points</h2>
         <p className="text-muted-foreground mb-6">
-          Analyzing your transcript and sources to identify key insights...
+          Analyzing your transcript and sources based on your focus: "{articleFocus}"
         </p>
         <div className="w-64 h-2 bg-muted rounded-full mx-auto overflow-hidden">
           <div className="h-full bg-gradient-primary rounded-full animate-pulse" style={{ width: '60%' }}></div>
@@ -255,7 +306,7 @@ export const KeyPointsReview = ({
           Review Key Points
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          We've extracted {transcriptPoints.length} key insights from your transcript and {sourcePoints.length} from your sources. 
+          Based on your focus "{articleFocus}", we've extracted {transcriptPoints.length} key insights from your transcript and {sourcePoints.length} from your sources. 
           Review, edit, and verify them before proceeding.
         </p>
       </div>
@@ -464,10 +515,13 @@ export const KeyPointsReview = ({
         </div>
         <Button
           variant="outline"
-          onClick={extractKeyPoints}
+          onClick={() => {
+            setShowFocusInput(true);
+            onKeyPointsChange([]);
+          }}
           disabled={isExtracting}
         >
-          Re-extract Points
+          Change Focus & Re-extract
         </Button>
       </div>
     </div>
