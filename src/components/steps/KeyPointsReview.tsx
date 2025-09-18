@@ -115,12 +115,14 @@ export const KeyPointsReview = ({
         The company has experienced tremendous growth in user engagement, with our mobile application seeing a 40% increase in daily active users over the past quarter. Our team has doubled from 12 to 24 employees, and we've been focused on scaling our infrastructure to handle this growth. User feedback has been overwhelmingly positive, especially regarding our new AI-powered features that help users track their progress more effectively. We've had to make some significant technical decisions about our backend architecture to support real-time data processing and analytics. Revenue growth has exceeded our projections by 25%, largely due to our improved customer acquisition strategy and higher retention rates. The partnership negotiations with several major technology companies are progressing well, though I can't share specific details due to confidentiality agreements. Our customer support team has implemented new automation tools that have reduced response times by 60% while maintaining high satisfaction scores. Innovation has been a key driver for us - we've invested heavily in machine learning capabilities and data analytics to better understand user behavior patterns. The remote work transition has actually improved our team collaboration and productivity, with better tools and processes in place. Market expansion into three new regions is planned for Q2 2024, pending regulatory approvals and local partnership agreements.
       `;
       
-      const { keyPoints: aiKeyPoints, summary, keywords } = await processMultipleSourcesWithAI(
+      const { transcriptKeyPoints, webResourceKeyPoints, summary, keywords } = await processMultipleSourcesWithAI(
         sourceData,
         transcriptContent,
         articleFocus,
         5
       );
+      
+      const aiKeyPoints = [...transcriptKeyPoints, ...webResourceKeyPoints];
       
       setExtractedKeywords(keywords);
       

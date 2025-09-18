@@ -230,7 +230,7 @@ export const extractKeyPointsWithAI = async (
     mainThemes: keywords.slice(0, 3)
   };
   
-  return extractKeyPointsWithClaudeSonnet(content, source, userFocus, extractedKeywords);
+  return extractKeyPointsWithClaudeSonnet(content, source, userFocus, extractedKeywords, 'webResource');
 };
 
 /**
