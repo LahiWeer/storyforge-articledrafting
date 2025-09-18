@@ -25,28 +25,25 @@ const Index = () => {
         backgroundImage: `url(${heroImage})`
       }} />
         <div className="relative container mx-auto px-6 py-24 lg:py-32">
-    <div className="max-w-4xl mx-auto text-center text-white">
-        <h1 className="text-5xl lg:text-7xl font-heading font-bold mb-10 leading-tight" style={{
-            color: '#1976D2'
-        }}>
-            {/* Ensure 'Transform Interviews into' stays on one line */}
-            <span className="block mb-2 sm:inline-block">Transform Interviews into</span>
-            
-            {/* 'Story-Driven Articles' will be on its own line due to 'block' */}
-            <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-[8E44AD] text-[#d2f8ff]">
-                Story-Driven Articles
-            </span>
-        </h1>
-        <p className="text-xl lg:text-2xl mb-8 text-white/90 max-w-3xl mx-auto font-editorial">
-            Our AI-powered platform turns raw interview transcripts into compelling, 
-            fact-checked stories with full source verification and human oversight.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-lg px-8 py-4 bg-[#1b3b6f] text-white hover:bg-[#00798c]" onClick={() => setShowGenerator(true)}>
-                Start Creating Stories
-            </Button>
-        </div>
+  <div className="max-w-4xl mx-auto text-center text-white">
+    <h1 className="text-5xl lg:text-7xl font-heading font-bold mb-10 leading-tight" style={{
+      color: '#1976D2'
+    }}>
+      <span className="block pb-2 sm:pb-4">Transform Interviews into</span>
+      <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-[8E44AD] text-[#d2f8ff]">
+        Story-Driven Articles
+      </span>
+    </h1>
+    <p className="text-xl lg:text-2xl mb-8 text-white/90 max-w-3xl mx-auto font-editorial">
+      Our AI-powered platform turns raw interview transcripts into compelling,
+      fact-checked stories with full source verification and human oversight.
+    </p>
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <Button size="lg" className="text-lg px-8 py-4 bg-[#1b3b6f] text-white hover:bg-[#00798c]" onClick={() => setShowGenerator(true)}>
+        Start Creating Stories
+      </Button>
     </div>
+  </div>
 </div>
       </section>
 
