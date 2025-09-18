@@ -39,7 +39,7 @@ const Index = () => {
               fact-checked stories with full source verification and human oversight.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="text-lg px-8 py-4 bg-[#1b3b6f] text-white hover:bg-[#226a8d]" onClick={() => setShowGenerator(true)}>
+              <Button size="lg" className="text-lg px-8 py-4 bg-[#1b3b6f] text-white hover:bg-[#067bc2]" onClick={() => setShowGenerator(true)}>
                  Start Creating Stories
               </Button>
             </div>
