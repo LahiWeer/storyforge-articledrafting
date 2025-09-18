@@ -69,7 +69,7 @@ export const StoryGenerator = () => {
       case 2:
         return storyData.sources.length > 0;
       case 3:
-        return storyData.keyPoints.length > 0;
+        return storyData.keyPoints.filter(point => point.verified).length > 0;
       case 4:
         return storyData.storyDirection.tone && storyData.storyDirection.angle;
       case 5:

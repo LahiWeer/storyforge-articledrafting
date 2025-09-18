@@ -85,6 +85,7 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
 
   const generateMockDraft = (data: StoryData): string => {
     const { storyDirection, keyPoints } = data;
+    const verifiedKeyPoints = keyPoints.filter(point => point.verified);
     
     const getIntroByAngle = () => {
       switch (storyDirection.angle) {
@@ -120,7 +121,7 @@ ${getToneModifier()} several key factors have contributed to this remarkable tra
 
 ## Key Insights
 
-${keyPoints.slice(0, 3).map((point, index) => `
+${verifiedKeyPoints.slice(0, 3).map((point, index) => `
 **${index + 1}. ${point.text}**
 
 This insight emerged during our conversation when discussing the strategic initiatives that have shaped the company's trajectory. The implementation of these changes has had a measurable impact on both operational efficiency and customer satisfaction.
@@ -229,7 +230,7 @@ The journey outlined in this conversation demonstrates that with the right appro
       <div className="grid md:grid-cols-3 gap-4 text-center">
         <Card className="p-4">
           <h4 className="font-medium mb-1">Key Points</h4>
-          <p className="text-2xl font-bold text-primary">{storyData.keyPoints.length}</p>
+          <p className="text-2xl font-bold text-primary">{storyData.keyPoints.filter(point => point.verified).length}</p>
           <p className="text-xs text-muted-foreground">Incorporated</p>
         </Card>
         <Card className="p-4">
