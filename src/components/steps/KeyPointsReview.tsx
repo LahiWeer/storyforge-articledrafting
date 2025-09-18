@@ -16,7 +16,7 @@ interface KeyPoint {
 
 interface Source {
   id: string;
-  type: 'pdf' | 'url' | 'youtube';
+  type: 'pdf' | 'url' | 'youtube' | 'text';
   content: string;
   title: string;
 }
