@@ -62,7 +62,7 @@ CONTENT TO ANALYZE:
 "${content}"
 
 INSTRUCTIONS:
-1. Extract 3-8 key points that are directly relevant to the user's focus
+1. Extract 8-10 key points that are directly relevant to the user's focus
 2. Each key point MUST include at least one of the identified keywords
 3. Focus only on content that supports the user's stated goals and direction
 4. Ignore any content that doesn't align with the focus
