@@ -30,7 +30,7 @@ const Index = () => {
             color: '#b8e2ff'
           }}>
               Transform Interviews into 
-              <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-[8E44AD] text-[#446cad]">
                 Story-Driven Articles
               </span>
             </h1>
@@ -105,7 +105,9 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24" style={{ backgroundColor: '#61a5c2' }}>
+      <section className="py-24" style={{
+      backgroundColor: '#61a5c2'
+    }}>
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-heading font-bold mb-6 text-secondary-foreground">
             Ready to Transform Your Interviews?
