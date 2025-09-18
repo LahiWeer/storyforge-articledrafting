@@ -2,15 +2,18 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Compass, Target, PenTool } from 'lucide-react';
+import { Compass, Target, PenTool, Plus, X } from 'lucide-react';
 
 interface StoryDirectionData {
   tone: string;
   angle: string;
   length: string;
   customPrompt?: string;
+  customTones?: string[];
+  customAngle?: string;
 }
 
 interface StoryDirectionProps {
@@ -43,9 +46,25 @@ const lengthOptions = [
 
 export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionProps) => {
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
+  const [showCustomTone, setShowCustomTone] = useState(false);
+  const [showCustomAngle, setShowCustomAngle] = useState(false);
+  const [customToneInput, setCustomToneInput] = useState('');
 
   const updateDirection = (updates: Partial<StoryDirectionData>) => {
     onDirectionChange({ ...direction, ...updates });
+  };
+
+  const addCustomTone = () => {
+    if (customToneInput.trim()) {
+      const currentTones = direction.customTones || [];
+      updateDirection({ customTones: [...currentTones, customToneInput.trim()] });
+      setCustomToneInput('');
+    }
+  };
+
+  const removeCustomTone = (index: number) => {
+    const currentTones = direction.customTones || [];
+    updateDirection({ customTones: currentTones.filter((_, i) => i !== index) });
   };
 
   return (
@@ -92,6 +111,59 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
               </div>
             ))}
           </RadioGroup>
+
+          {/* Custom Writing Tone */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-medium">Custom Writing Tones</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCustomTone(!showCustomTone)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Custom Tone
+              </Button>
+            </div>
+            
+            {showCustomTone && (
+              <div className="space-y-3 mb-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={customToneInput}
+                    onChange={(e) => setCustomToneInput(e.target.value)}
+                    placeholder="e.g., Humorous, Technical, Inspirational..."
+                    onKeyPress={(e) => e.key === 'Enter' && addCustomTone()}
+                  />
+                  <Button onClick={addCustomTone} size="sm">
+                    Add
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Add multiple custom tones to combine different writing styles in your article
+                </p>
+              </div>
+            )}
+
+            {direction.customTones && direction.customTones.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Custom Tones:</Label>
+                <div className="flex flex-wrap gap-2">
+                  {direction.customTones.map((tone, index) => (
+                    <div key={index} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm">
+                      <span>{tone}</span>
+                      <button
+                        onClick={() => removeCustomTone(index)}
+                        className="hover:text-destructive"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
 
         {/* Angle Selection */}
@@ -124,6 +196,36 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
               </div>
             ))}
           </RadioGroup>
+
+          {/* Custom Story Angle */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-medium">Custom Story Angle</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCustomAngle(!showCustomAngle)}
+              >
+                {showCustomAngle ? 'Hide' : 'Add Custom Angle'}
+              </Button>
+            </div>
+            
+            {showCustomAngle && (
+              <div className="space-y-2">
+                <Label htmlFor="custom-angle">Describe your unique story perspective</Label>
+                <Textarea
+                  id="custom-angle"
+                  value={direction.customAngle || ''}
+                  onChange={(e) => updateDirection({ customAngle: e.target.value })}
+                  placeholder="e.g., 'Focus on the environmental impact of the innovation', 'Explore the competitive landscape and market positioning', 'Highlight the personal journey and lessons learned'..."
+                  className="min-h-[80px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Define a custom angle that will shape the narrative focus of your article
+                </p>
+              </div>
+            )}
+          </div>
         </Card>
 
         {/* Length Selection */}
@@ -191,10 +293,16 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
           <h4 className="font-semibold mb-2 text-secondary-foreground">Story Direction Summary</h4>
           <div className="space-y-1 text-sm text-secondary-foreground">
             <p><strong>Tone:</strong> {toneOptions.find(t => t.value === direction.tone)?.label}</p>
+            {direction.customTones && direction.customTones.length > 0 && (
+              <p><strong>Custom Tones:</strong> {direction.customTones.join(', ')}</p>
+            )}
             <p><strong>Angle:</strong> {angleOptions.find(a => a.value === direction.angle)?.label}</p>
+            {direction.customAngle && (
+              <p><strong>Custom Angle:</strong> {direction.customAngle}</p>
+            )}
             <p><strong>Length:</strong> {lengthOptions.find(l => l.value === direction.length)?.label}</p>
             {direction.customPrompt && (
-              <p><strong>Custom:</strong> {direction.customPrompt}</p>
+              <p><strong>Custom Instructions:</strong> {direction.customPrompt}</p>
             )}
           </div>
         </Card>
