@@ -37,7 +37,7 @@ const angleOptions = [
   { value: 'human-impact', label: 'Human Impact', description: 'Center on people and personal stories' },
   { value: 'market-analysis', label: 'Market Analysis', description: 'Business and industry perspective' },
   { value: 'behind-scenes', label: 'Behind the Scenes', description: 'Inside look at processes and decisions' },
-  { value: 'other', label: 'Other', description: 'description: 'Provide your own unique story angle' },
+  { value: 'other', label: 'Other', description: 'Provide your own unique story angle' },
 ];
 
 const lengthOptions = [
@@ -54,19 +54,6 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
 
   const updateDirection = (updates: Partial<StoryDirectionData>) => {
     onDirectionChange({ ...direction, ...updates });
-  };
-
-  const addCustomTone = () => {
-    if (customToneInput.trim()) {
-      const currentTones = direction.customTones || [];
-      updateDirection({ customTones: [...currentTones, customToneInput.trim()] });
-      setCustomToneInput('');
-    }
-  };
-
-  const removeCustomTone = (index: number) => {
-    const currentTones = direction.customTones || [];
-    updateDirection({ customTones: currentTones.filter((_, i) => i !== index) });
   };
 
   return (
