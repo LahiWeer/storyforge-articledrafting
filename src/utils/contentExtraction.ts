@@ -118,6 +118,74 @@ export const processWebContentForFocus = (
 };
 
 /**
+ * Remove duplicate sentences from extracted results
+ */
+export const deduplicateSentences = (extractedSentences: ExtractedSentence[]): ExtractedSentence[] => {
+  const seen = new Set<string>();
+  const unique: ExtractedSentence[] = [];
+  
+  // Sort by relevance score first to prioritize higher scoring duplicates
+  const sorted = [...extractedSentences].sort((a, b) => b.relevanceScore - a.relevanceScore);
+  
+  for (const sentence of sorted) {
+    const normalized = sentence.text.toLowerCase().trim();
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      unique.push(sentence);
+    }
+  }
+  
+  return unique;
+};
+
+/**
+ * Process multiple web sources and extract focused, deduplicated sentences
+ */
+export const processMultipleWebSources = (
+  sources: Array<{ content: string; title: string; url?: string }>,
+  keywords: string[],
+  minSentences: number = 5
+): { extractedSentences: ExtractedSentence[]; summary: string } => {
+  let allExtractedSentences: ExtractedSentence[] = [];
+  
+  // Process each source individually to maintain source attribution
+  sources.forEach(source => {
+    const sentences = extractFocusedSentences(source.content, keywords, 0);
+    // Add source information to each sentence
+    const sourceSentences = sentences.map(sentence => ({
+      ...sentence,
+      // Store source title for later use
+      sourceTitle: source.title
+    }));
+    allExtractedSentences.push(...sourceSentences);
+  });
+  
+  // Deduplicate sentences across all sources
+  const deduplicatedSentences = deduplicateSentences(allExtractedSentences);
+  
+  // Ensure we have at least the minimum number of sentences
+  const relevantSentences = deduplicatedSentences.filter(s => s.relevanceScore > 0);
+  
+  let finalSentences: ExtractedSentence[];
+  if (relevantSentences.length >= minSentences) {
+    finalSentences = relevantSentences;
+  } else {
+    // If we don't have enough relevant sentences, include the best non-matching ones
+    const additionalSentences = deduplicatedSentences
+      .filter(s => s.relevanceScore === 0)
+      .slice(0, minSentences - relevantSentences.length);
+    
+    finalSentences = [...relevantSentences, ...additionalSentences];
+  }
+  
+  const relevantCount = finalSentences.filter(s => s.relevanceScore > 0).length;
+  const totalSources = sources.length;
+  const summary = `Extracted ${finalSentences.length} unique sentences from ${totalSources} web sources (${relevantCount} highly relevant to your focus)`;
+  
+  return { extractedSentences: finalSentences, summary };
+};
+
+/**
  * Simulate web content extraction (to be replaced with actual web scraping)
  */
 export const simulateWebContentExtraction = (url: string): string => {

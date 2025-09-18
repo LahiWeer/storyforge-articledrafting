@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { GripVertical, CheckCircle, AlertTriangle, Edit2, Save, X, Target } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { extractFocusKeywords, extractFocusedSentences, ExtractedSentence } from '@/utils/contentExtraction';
+import { extractFocusKeywords, extractFocusedSentences, ExtractedSentence, processMultipleWebSources } from '@/utils/contentExtraction';
 
 interface KeyPoint {
   id: string;
@@ -65,23 +65,33 @@ export const KeyPointsReview = ({
     }));
   };
 
-  // Generate focused key points from sources using keyword matching
+  // Generate focused key points from sources using keyword matching and deduplication
   const generateSourceKeyPoints = (keywords: string[]): KeyPoint[] => {
-    const allSourceContent = sources.map(source => source.content).join(' ');
-    
-    if (!allSourceContent.trim()) {
+    if (sources.length === 0) {
       return [];
     }
-    
-    const extractedSentences = extractFocusedSentences(allSourceContent, keywords, 5);
-    
-    return extractedSentences.map((sentence, index) => ({
-      id: `s${index + 1}`,
-      text: sentence.text,
-      source: sources[index % sources.length]?.title || `External Source ${index + 1}`,
-      status: sentence.relevanceScore > 0 ? 'VERIFIED' : 'UNVERIFIED',
-      type: 'source' as const,
+
+    // Process all web URLs individually and extract focused, deduplicated sentences
+    const sourceData = sources.map(source => ({
+      content: source.content,
+      title: source.title,
+      url: source.type === 'url' ? source.content : undefined
     }));
+
+    const { extractedSentences } = processMultipleWebSources(sourceData, keywords, 5);
+    
+    return extractedSentences.map((sentence, index) => {
+      // Find the original source for proper attribution
+      const sourceTitle = (sentence as any).sourceTitle || sources[index % sources.length]?.title || `External Source ${index + 1}`;
+      
+      return {
+        id: `s${index + 1}`,
+        text: sentence.text,
+        source: sourceTitle,
+        status: sentence.relevanceScore > 0 ? 'VERIFIED' : 'UNVERIFIED',
+        type: 'source' as const,
+      };
+    });
   };
 
   const extractKeyPoints = async () => {
@@ -240,7 +250,7 @@ export const KeyPointsReview = ({
         </div>
         <h2 className="text-2xl font-heading font-semibold mb-2">Extracting Key Points</h2>
         <p className="text-muted-foreground mb-4">
-          Analyzing your transcript and sources based on your focus: "{articleFocus}"
+          Analyzing your transcript and sources based on your focus: "{articleFocus}" (processing each web URL individually to extract relevant content and remove duplicates)
         </p>
         
         {extractedKeywords.length > 0 && (
@@ -273,8 +283,8 @@ export const KeyPointsReview = ({
           Review Key Points
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
-          Based on your focus "{articleFocus}", we've extracted {keyPoints.length} key insights ({transcriptPoints.length} from transcript, {sourcePoints.length} from sources). 
-          All extracted content is strictly relevant to your intended focus. Review, edit, and verify them before proceeding.
+          Based on your focus "{articleFocus}", we've extracted {keyPoints.length} unique key insights ({transcriptPoints.length} from transcript, {sourcePoints.length} from sources). 
+          All content from web URLs has been analyzed individually and duplicates removed to ensure only relevant, unique insights are included.
         </p>
         
         {extractedKeywords.length > 0 && (
