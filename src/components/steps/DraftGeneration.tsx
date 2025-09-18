@@ -84,68 +84,108 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
   }, []);
 
   const generateMockDraft = (data: StoryData): string => {
-    const { storyDirection, keyPoints } = data;
+    const { storyDirection, keyPoints, sources, transcript } = data;
     const verifiedKeyPoints = keyPoints.filter(point => point.verified);
     
+    // Get source attributions for verified points
+    const getSourceAttribution = (keyPoint: any) => {
+      if (keyPoint.sources && keyPoint.sources.length > 0) {
+        const sourceId = keyPoint.sources[0];
+        const source = sources.find(s => s.id === sourceId);
+        if (source) {
+          switch (source.type) {
+            case 'pdf':
+            case 'url':
+              return `Based on ${source.title}`;
+            case 'youtube':
+              return `According to the video interview`;
+            case 'text':
+              return `Based on the provided documentation`;
+            default:
+              return `According to the interview`;
+          }
+        }
+      }
+      return `According to the interviewee`;
+    };
+
     const getIntroByAngle = () => {
+      const hasTranscript = transcript && transcript.length > 50;
       switch (storyDirection.angle) {
         case 'success-story':
-          return "In a remarkable display of innovation and determination, the company has achieved unprecedented growth while navigating complex market challenges.";
+          return hasTranscript 
+            ? "In a candid conversation, leadership shared insights into their journey of transformation and growth."
+            : "Industry leaders have achieved remarkable results through strategic innovation and determination [UNVERIFIED].";
         case 'challenges-overcome':
-          return "Behind every success story lies a series of obstacles that seemed insurmountable. This is the story of how one team turned challenges into opportunities.";
+          return hasTranscript 
+            ? "During our discussion, it became clear how significant obstacles were transformed into opportunities for growth."
+            : "Behind the success story lies a series of challenges that were systematically addressed [UNVERIFIED].";
         case 'innovation-focus':
-          return "At the intersection of technology and human ingenuity, breakthrough innovations are reshaping entire industries. This is one such story.";
+          return hasTranscript 
+            ? "The interview revealed how cutting-edge approaches are reshaping traditional business practices."
+            : "At the intersection of technology and strategy, breakthrough innovations are emerging [UNVERIFIED].";
         default:
-          return "In an exclusive interview, industry leaders share insights that could redefine how we think about modern business challenges.";
+          return hasTranscript 
+            ? "In an exclusive interview, key insights emerged about current market dynamics and strategic approaches."
+            : "Industry analysis reveals significant developments in the current market landscape [UNVERIFIED].";
       }
     };
 
-    const getToneModifier = () => {
+    const getToneStyle = () => {
       switch (storyDirection.tone) {
         case 'professional':
-          return 'industry analysis reveals';
+          return 'formal analysis';
         case 'conversational':
-          return 'as our conversation unfolded, it became clear that';
+          return 'discussion-based insights';
         case 'analytical':
-          return 'data-driven insights demonstrate';
+          return 'data-driven examination';
         case 'narrative':
-          return 'the story begins with';
+          return 'story-driven exploration';
         default:
-          return 'investigation shows';
+          return 'comprehensive review';
       }
     };
 
     return `# ${getIntroByAngle()}
 
-${getToneModifier()} several key factors have contributed to this remarkable transformation.
+This ${getToneStyle()} draws from ${transcript ? 'our conversation and' : ''} supporting documentation to examine key developments and their implications.
 
-## Key Insights
+## Key Findings
 
-${verifiedKeyPoints.slice(0, 3).map((point, index) => `
-**${index + 1}. ${point.text}**
+${verifiedKeyPoints.map((point, index) => {
+  const attribution = getSourceAttribution(point);
+  return `### ${index + 1}. ${point.text}
 
-This insight emerged during our conversation when discussing the strategic initiatives that have shaped the company's trajectory. The implementation of these changes has had a measurable impact on both operational efficiency and customer satisfaction.
-`).join('\n')}
+${attribution}, this development represents a significant factor in the overall narrative. ${storyDirection.tone === 'analytical' ? 'The data supporting this observation' : 'This insight'} ${storyDirection.tone === 'conversational' ? 'came up naturally in our discussion' : 'emerged from the analysis'}.
 
-## The Bigger Picture
+`;
+}).join('')}
 
-As we delve deeper into the implications of these developments, it becomes clear that the lessons learned here extend far beyond a single organization. The principles and strategies discussed offer valuable insights for anyone facing similar challenges in today's dynamic business environment.
+## Analysis and Context
 
-${storyDirection.length === 'in-depth' ? `
-## Technical Deep Dive
+${storyDirection.tone === 'conversational' ? 'Throughout our conversation,' : 'The examination reveals that'} these key points interconnect to form a comprehensive picture. ${verifiedKeyPoints.length > 0 ? `${getSourceAttribution(verifiedKeyPoints[0])}, the primary theme centers on strategic adaptation and execution.` : 'The overall theme focuses on strategic development [UNVERIFIED].'} 
 
-The technical challenges mentioned during our discussion reveal the complexity of modern business operations. From scalability concerns to infrastructure limitations, each obstacle presented an opportunity for innovative problem-solving.
+${sources.length > 1 ? `Cross-referencing multiple sources confirms` : sources.length === 1 ? `Based on the available source,` : `Without additional verification,`} the consistency of these findings${sources.length === 0 ? ' [UNVERIFIED]' : ''}.
 
-## Future Implications
+${storyDirection.length === 'in-depth' && verifiedKeyPoints.length > 3 ? `
+## Deeper Implications
 
-Looking ahead, the strategies and solutions discussed point to broader trends that will likely influence the industry for years to come. The proactive approach demonstrated here serves as a model for other organizations facing similar transitions.
+${verifiedKeyPoints.slice(3).map(point => {
+  const attribution = getSourceAttribution(point);
+  return `${attribution}, ${point.text.toLowerCase()} This adds another layer to our understanding of the broader strategic landscape.`;
+}).join(' ')}
+
+The interconnected nature of these developments suggests a coordinated approach to addressing market challenges${transcript ? ', as evidenced in our discussion' : ' [UNVERIFIED]'}.
 ` : ''}
 
 ## Conclusion
 
-The journey outlined in this conversation demonstrates that with the right approach, vision, and execution, even the most daunting challenges can become stepping stones to success. As the industry continues to evolve, the insights shared here provide a valuable roadmap for future growth and innovation.
+${storyDirection.tone === 'conversational' ? 'Our conversation revealed' : 'The analysis demonstrates'} that ${verifiedKeyPoints.length > 0 ? 'the documented insights provide' : 'the available information suggests [UNVERIFIED]'} a framework for understanding current market dynamics. 
 
-*This article is based on an exclusive interview and supported by industry research and documentation.*`;
+${sources.length > 0 ? `The supporting documentation reinforces` : `While comprehensive verification is pending,`} these findings${sources.length === 0 ? ' [UNVERIFIED]' : ''} point toward significant implications for industry stakeholders.
+
+---
+*Editor's Note: This article is based on ${transcript ? 'interview content and ' : ''}${sources.length} supporting source${sources.length !== 1 ? 's' : ''}. Claims marked [UNVERIFIED] require additional confirmation before publication.*`;
   };
 
   const generateMockSourceMapping = (data: StoryData): Record<string, string[]> => {
