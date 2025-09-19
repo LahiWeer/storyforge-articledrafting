@@ -1091,7 +1091,7 @@ const generateEnhancedMockArticle = (
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
   
   // Use provided headline or generate one
-  const headline = providedHeadline || generateFallbackHeadline(verifiedKeyPoints, userFocus, storyDirection);
+  const headline = providedHeadline 
   
   // Generate article sections
   const introduction = generateIntroduction();
