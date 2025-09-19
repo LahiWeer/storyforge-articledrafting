@@ -1,4 +1,4 @@
-// AI-powered content extraction with 3-step pipeline: Claude 4 Sonnet → Claude 4 Sonnet → GPT-5
+// AI-powered content extraction with 3-step pipeline: GPT-5 → Claude 4 Sonnet → GPT-5
 
 export interface AIExtractedKeyPoint {
   text: string;
@@ -14,12 +14,12 @@ export interface ExtractedKeywords {
   mainThemes: string[];
 }
 
-// ============= STEP 1: KEYWORD EXTRACTION (Claude 4 Sonnet) =============
+// ============= STEP 1: KEYWORD EXTRACTION (GPT-5) =============
 
 /**
- * Step 1: Use Claude 4 Sonnet to analyze user's focus and extract main keywords and key phrases
+ * Step 1: Use GPT-5 to analyze user's focus and extract main keywords and key phrases
  */
-export const extractKeywordsWithClaudeSonnet = async (userFocus: string): Promise<ExtractedKeywords> => {
+export const extractKeywordsWithGPT5 = async (userFocus: string): Promise<ExtractedKeywords> => {
   const prompt = `You are an expert content strategist. Analyze the user's focus input and extract the main keywords and key phrases that represent their desired focus for the article.
 
 USER'S ARTICLE FOCUS:
@@ -44,19 +44,21 @@ Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent
 
   try {
     // Note: API keys should be provided via secure backend integration
-    // This is a placeholder for demonstration - in production, use secure backend proxy
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER', // Should be handled via backend
-        'anthropic-version': '2023-06-01'
+        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER', // Should be handled via backend
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'gpt-5',
         max_tokens: 1000,
         temperature: 0.2,
         messages: [
+          {
+            role: 'system',
+            content: 'You are an expert content strategist specializing in keyword and theme extraction.'
+          },
           {
             role: 'user',
             content: prompt
@@ -66,11 +68,11 @@ Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent
     });
 
     if (!response.ok) {
-      throw new Error(`Claude API error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.content[0].text;
+    const aiResponse = data.choices[0].message.content;
     
     try {
       const parsed = JSON.parse(aiResponse);
@@ -80,13 +82,21 @@ Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent
         mainThemes: parsed.mainThemes || []
       };
     } catch (parseError) {
-      console.warn('Failed to parse Claude response, using fallback');
+      console.warn('Failed to parse GPT-5 response, using fallback');
       return extractKeywordsFallback(userFocus);
     }
   } catch (error) {
-    console.warn('Claude 4 Sonnet not available, using fallback keyword extraction');
+    console.warn('GPT-5 not available, using fallback keyword extraction');
     return extractKeywordsFallback(userFocus);
   }
+};
+
+/**
+ * Legacy function - now redirects to GPT-5 for consistency
+ */
+export const extractKeywordsWithClaudeSonnet = async (userFocus: string): Promise<ExtractedKeywords> => {
+  // Redirect to GPT-5 to avoid calling Claude Sonnet 4
+  return extractKeywordsWithGPT5(userFocus);
 };
 
 /**
@@ -380,7 +390,7 @@ export const processMultipleSourcesWithAI = async (
   summary: string;
   keywords: string[];
 }> => {
-  const extractedKeywords = await extractKeywordsWithClaudeSonnet(userFocus);
+  const extractedKeywords = await extractKeywordsWithGPT5(userFocus);
   const allKeywords = [...extractedKeywords.keywords, ...extractedKeywords.phrases];
 
   // Separate key points arrays
@@ -415,7 +425,7 @@ export const processMultipleSourcesWithAI = async (
   const dedupTranscription = deduplicateAIKeyPoints(transcriptKeyPoints);
   const dedupResources = deduplicateAIKeyPoints(webResourceKeyPoints);
 
-  const summary = `AI extracted ${dedupTranscription.length} key points from transcription and ${dedupResources.length} key points from web/resources using Claude 4 Sonnet.`;
+  const summary = `AI extracted ${dedupTranscription.length} key points from transcription and ${dedupResources.length} key points from web/resources using GPT-5 keyword analysis with Claude 4 Sonnet content extraction.`;
 
   return {
     transcriptKeyPoints: dedupTranscription,
