@@ -624,20 +624,6 @@ Generated with Story Generator • ${new Date().toLocaleDateString()}`;
         </div>
       </Card>
 
-      {/* Unverified Items Warning */}
-      {stats.unverifiedKeyPoints > 0 && (
-        <Card className="p-4 border-warning/30 bg-warning/5">
-          <div className="flex items-center gap-2 text-warning">
-            <AlertTriangle className="w-5 h-5" />
-            <p className="font-medium">
-              {stats.unverifiedKeyPoints} key points lack supporting sources
-            </p>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Consider adding sources or marking these claims as "UNVERIFIED" in your final article
-          </p>
-        </Card>
-      )}
     </div>
   );
 };
