@@ -581,20 +581,6 @@ Generated with Story Generator • ${new Date().toLocaleDateString()}`;
           </Button>
           
           <Button
-            onClick={exportAsDocx}
-            className="flex items-center gap-2 h-auto p-4 justify-start"
-            variant="outline"
-          >
-            <File className="w-5 h-5" />
-            <div className="text-left">
-              <p className="font-medium">Word (.docx)</p>
-              <p className="text-xs text-muted-foreground">
-                Editable document
-              </p>
-            </div>
-          </Button>
-          
-          <Button
             onClick={exportAsTxt}
             className="flex items-center gap-2 h-auto p-4 justify-start"
             variant="outline"
