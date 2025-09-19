@@ -97,9 +97,6 @@ export const StoryDirection = ({ direction, onDirectionChange, articleFocus }: S
             <p className="text-secondary-foreground leading-relaxed">
               {articleFocus}
             </p>
-            <p className="text-xs text-secondary-foreground/70 mt-3">
-              This focus was set in the Key Points step and will be used with your story direction to create a compelling narrative.
-            </p>
           </Card>
         )}
 
