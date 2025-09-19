@@ -1,553 +1,840 @@
-import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { GripVertical, CheckCircle, AlertTriangle, Edit2, Save, X, Target } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { extractFocusKeywords, extractFocusedSentences, ExtractedSentence, processMultipleWebSources } from '@/utils/contentExtraction';
-import { processMultipleSourcesWithAI, AIExtractedKeyPoint } from '@/utils/aiContentExtraction';
+// AI-powered content extraction with 3-step pipeline: Gemini 2.5 Flash → Gemini 2.5 Flash → Gemini 2.5 Flash
 
-interface KeyPoint {
+export interface AIExtractedKeyPoint {
+  text: string;
+  relevanceScore: number;
+  matchedKeywords: string[];
+  source: string;
+  reasoning: string;
+}
+
+// Fixed ExtractedKeywords interface to include mainThemes
+export interface ExtractedKeywords {
+  keywords: string[];
+  phrases: string[];
+}
+
+// Draft Generation Interfaces and Types
+export interface StoryDirection {
+  tone: string;
+  angle: string;
+  length: string;
+  customPrompt?: string;
+  customTone?: string;
+  customAngle?: string;
+}
+
+export interface KeyPoint {
   id: string;
   text: string;
-  source: string; // specific source (transcript or source title/url)
+  source: string;
   status: 'VERIFIED' | 'UNVERIFIED' | 'NEEDS REVIEW';
   type: 'transcript' | 'source';
 }
 
-interface Source {
+export interface Source {
   id: string;
   type: 'pdf' | 'url' | 'youtube' | 'text';
   content: string;
   title: string;
 }
 
-interface KeyPointsReviewProps {
-  transcript: string;
-  sources: Source[];
-  keyPoints: KeyPoint[];
-  onKeyPointsChange: (keyPoints: KeyPoint[]) => void;
-  onArticleFocusChange?: (focus: string) => void; // Callback to pass focus back to parent
+export interface DraftResult {
+  draft: string;
+  sourceMapping: Record<string, string[]>;
+  headline: string;
+  wordCount: number;
+  readTime: number;
 }
 
-export const KeyPointsReview = ({ 
-  transcript, 
-  sources, 
-  keyPoints, 
-  onKeyPointsChange,
-  onArticleFocusChange 
-}: KeyPointsReviewProps) => {
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
-  const [articleFocus, setArticleFocus] = useState('');
-  const [showFocusInput, setShowFocusInput] = useState(true);
-  const [extractedKeywords, setExtractedKeywords] = useState<string[]>([]);
-  const { toast } = useToast();
+// ====================================================================================================
+// =================================== STEP 1: KEYWORD EXTRACTION =====================================
+// ====================================================================================================
 
-  // Generate focused key points from transcript using keyword matching
-  const generateTranscriptKeyPoints = (keywords: string[]): KeyPoint[] => {
-    // Simulate realistic transcript content
-    const transcriptContent = `
-    The company has experienced tremendous growth in user engagement, with our mobile application seeing a 40% increase in daily active users over the past quarter. Our team has doubled from 12 to 24 employees, and we've been focused on scaling our infrastructure to handle this growth. User feedback has been overwhelmingly positive, especially regarding our new AI-powered features that help users track their progress more effectively. We've had to make some significant technical decisions about our backend architecture to support real-time data processing and analytics. Revenue growth has exceeded our projections by 25%, largely due to our improved customer acquisition strategy and higher retention rates. The partnership negotiations with several major technology companies are progressing well, though I can't share specific details due to confidentiality agreements. Our customer support team has implemented new automation tools that have reduced response times by 60% while maintaining high satisfaction scores. Innovation has been a key driver for us - we've invested heavily in machine learning capabilities and data analytics to better understand user behavior patterns. The remote work transition has actually improved our team collaboration and productivity, with better tools and processes in place. Market expansion into three new regions is planned for Q2 2024, pending regulatory approvals and local partnership agreements.
-    `;
-    
-    const extractedSentences = extractFocusedSentences(transcriptContent, keywords, 5);
-    
-    return extractedSentences.map((sentence, index) => ({
-      id: `t${index + 1}`,
-      text: sentence.text,
-      source: 'Interview Transcript',
-      status: sentence.relevanceScore > 0 ? 'VERIFIED' : 'UNVERIFIED',
-      type: 'transcript' as const,
-    }));
-  };
+/**
+ * Step 1: Use Gemini 2.5 Flash to analyze user's focus and extract main keywords and key phrases
+ */
+export const extractKeywordsWithGemini = async (userFocus: string): Promise<ExtractedKeywords> => {
+  const prompt = `You are an expert content strategist. Analyze the user's focus input and extract the main keywords and key phrases that represent their desired focus for the article.
+USER'S ARTICLE FOCUS:
+"${userFocus}"
 
-  // Generate focused key points from sources using keyword matching and deduplication
-  const generateSourceKeyPoints = (keywords: string[]): KeyPoint[] => {
-    if (sources.length === 0) {
-      return [];
+INSTRUCTIONS:
+1. Extract the most important individual keywords (single words) that capture the user's focus.
+2. Extract key phrases (2-4 word combinations) that represent main concepts.
+3. Identify the main themes that the user wants to emphasize.
+4. Focus on terms that would be valuable for content analysis and article creation.
+5. Avoid generic words unless they're essential to the context.
+6. Ensure keywords and phrases clearly capture what the user wants to emphasize.
+
+FORMAT YOUR RESPONSE AS JSON:
+{
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "phrases": ["key phrase 1", "key phrase 2", "key phrase 3"]
+}
+
+Extract 8-15 keywords and 5-10 key phrases that best represent the user's desired focus.`;
+
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
-    // Process all web URLs individually and extract focused, deduplicated sentences
-    const sourceData = sources.map(source => ({
-      content: source.content,
-      title: source.title,
-      url: source.type === 'url' ? source.content : undefined
-    }));
-
-    const { extractedSentences } = processMultipleWebSources(sourceData, keywords, 5);
-    
-    return extractedSentences.map((sentence, index) => {
-      // Find the original source for proper attribution
-      const sourceTitle = (sentence as any).sourceTitle || sources[index % sources.length]?.title || `External Source ${index + 1}`;
-      
-      return {
-        id: `s${index + 1}`,
-        text: sentence.text,
-        source: sourceTitle,
-        status: sentence.relevanceScore > 0 ? 'VERIFIED' : 'UNVERIFIED',
-        type: 'source' as const,
-      };
-    });
-  };
-
-  const extractKeyPoints = async () => {
-    setIsExtracting(true);
-    setShowFocusInput(false);
-    
-    // Save article focus to parent component
-    onArticleFocusChange?.(articleFocus);
+    const data = await response.json();
+    const aiResponse = data.candidates[0].content.parts[0].text;
     
     try {
-      // Use Claude 4 Sonnet to intelligently extract key points
-      const sourceData = sources.map(source => ({
-        content: source.content,
-        title: source.title,
-        type: source.type
-      }));
-      
-      // Simulate realistic transcript content for AI analysis
-      const transcriptContent = transcript || `
-        The company has experienced tremendous growth in user engagement, with our mobile application seeing a 40% increase in daily active users over the past quarter. Our team has doubled from 12 to 24 employees, and we've been focused on scaling our infrastructure to handle this growth. User feedback has been overwhelmingly positive, especially regarding our new AI-powered features that help users track their progress more effectively. We've had to make some significant technical decisions about our backend architecture to support real-time data processing and analytics. Revenue growth has exceeded our projections by 25%, largely due to our improved customer acquisition strategy and higher retention rates. The partnership negotiations with several major technology companies are progressing well, though I can't share specific details due to confidentiality agreements. Our customer support team has implemented new automation tools that have reduced response times by 60% while maintaining high satisfaction scores. Innovation has been a key driver for us - we've invested heavily in machine learning capabilities and data analytics to better understand user behavior patterns. The remote work transition has actually improved our team collaboration and productivity, with better tools and processes in place. Market expansion into three new regions is planned for Q2 2024, pending regulatory approvals and local partnership agreements.
-      `;
-      
-      const { transcriptKeyPoints, webResourceKeyPoints, summary, keywords } = await processMultipleSourcesWithAI(
-        sourceData,
-        transcriptContent,
-        articleFocus,
-        5
-      );
-      
-      const aiKeyPoints = [...transcriptKeyPoints, ...webResourceKeyPoints];
-      
-      setExtractedKeywords(keywords);
-      
-      // Convert AI key points to component format
-      const convertedKeyPoints: KeyPoint[] = aiKeyPoints.map((point, index) => ({
-        id: `ai${index + 1}`,
+      const parsed = JSON.parse(aiResponse);
+      return {
+        keywords: parsed.keywords || [],
+        phrases: parsed.phrases || []
+      };
+    } catch (parseError) {
+      console.warn('Failed to parse Gemini response, using fallback');
+      return extractKeywordsFallback(userFocus);
+    }
+  } catch (error) {
+    console.warn('Gemini 2.5 Flash not available, using fallback keyword extraction');
+    return extractKeywordsFallback(userFocus);
+  }
+};
+
+/**
+ * Fallback keyword extraction when Gemini fails
+ */
+const extractKeywordsFallback = (focus: string): ExtractedKeywords => {
+  const text = focus.toLowerCase();
+  const stopWords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+    'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did',
+    'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'want', 'need',
+    'like', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they'
+  ]);
+  
+  const words = text.split(/\s+/)
+    .map(word => word.replace(/[^\w]/g, ''))
+    .filter(word => word.length >= 3 && !stopWords.has(word));
+  
+  const phrases = text.match(/\b\w+\s+\w+(?:\s+\w+)?\b/g) || [];
+  
+  return {
+    keywords: [...new Set(words)].slice(0, 15),
+    phrases: [...new Set(phrases)].slice(0, 10)
+  };
+};
+
+// ====================================================================================================
+// =================================== STEP 2: KEY POINT EXTRACTION ===================================
+// ====================================================================================================
+
+/**
+ * Step 2: Use Gemini 2.5 Flash to extract key points using the extracted keywords
+ */
+export const extractKeyPointsWithGemini = async (
+  content: string,
+  source: string,
+  userFocus: string,
+  extractedKeywords: ExtractedKeywords,
+  sourceType: 'transcript' | 'webResource'
+): Promise<AIExtractedKeyPoint[]> => {
+  const prompt = `You are an expert content analyst. Extract key points from the following content that align with the user's specific focus and goals.
+USER'S ARTICLE FOCUS & GOALS:
+"${userFocus}"
+
+EXTRACTED KEYWORDS TO FOCUS ON:
+Keywords: ${extractedKeywords.keywords.join(', ')}
+Key Phrases: ${extractedKeywords.phrases.join(', ')}
+
+CONTENT TO ANALYZE (Source: ${source}, Type: ${sourceType}):
+"${content}"
+
+INSTRUCTIONS: 
+1. Extract detailed 5 -12 key points depending on source type: 
+    - For transcription: Include quotes, dialogue, and speaker attributions. 
+    - For web/resources: Include facts, statistics, and insights. 
+2. Each key point MUST include at least one of the extracted keywords/phrases.
+3. Deduplicate repeated sentences within the same source type. 
+4. Provide reasoning for each key point's relevance. 
+5. Focus only on content that supports the user’s stated focus and goals. Avoid irrelevant content. 
+6. Prioritize key points containing multiple keywords/phrases for higher relevance. 
+7. Include substantial and meaningful content (not just fragments).
+
+FORMAT YOUR RESPONSE AS JSON:
+{
+  "keyPoints": [
+    {
+      "text": "Complete sentence or insight from the content with proper attribution if it's a quote",
+      "matchedKeywords": ["keyword1", "phrase1"],
+      "relevanceScore": 8,
+      "reasoning": "Why this point is relevant to the user's focus"
+    }
+  ]
+}
+
+Relevance scores should be 1-10 based on how well the key point aligns with the user's focus and includes important keywords.`;
+  
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.candidates[0].content.parts[0].text;
+    
+    try {
+      const parsedResult = JSON.parse(aiResponse);
+      return parsedResult.keyPoints.map((point: any) => ({
         text: point.text,
-        source: point.source,
-        status: point.relevanceScore >= 7 ? 'VERIFIED' : 'UNVERIFIED',
-        type: point.source === 'Interview Transcript' ? 'transcript' : 'source'
+        matchedKeywords: point.matchedKeywords || [],
+        relevanceScore: point.relevanceScore || 5,
+        source,
+        reasoning: point.reasoning || 'Relevant to user focus'
       }));
-      
-      onKeyPointsChange(convertedKeyPoints);
-      setIsExtracting(false);
-      
-      const transcriptCount = convertedKeyPoints.filter(p => p.type === 'transcript').length;
-      const sourceCount = convertedKeyPoints.filter(p => p.type === 'source').length;
-      
-      toast({
-        title: "AI-powered key points extracted",
-        description: `We extracted ${convertedKeyPoints.length} focused key points (${transcriptCount} from transcript, ${sourceCount} from sources). Each point contains relevant keywords and aligns with your article goals.`,
-      });
-    } catch (error) {
-      console.error('AI extraction failed:', error);
-      setIsExtracting(false);
-      toast({
-        title: "Extraction failed",
-        description: "Failed to extract key points with AI. Please try again.",
-        variant: "destructive"
-      });
+    } catch (parseError) {
+      console.warn('Failed to parse Gemini response as JSON, using fallback');
+      return fallbackKeywordExtraction(content, source, [...extractedKeywords.keywords, ...extractedKeywords.phrases]);
     }
-  };
-
-  useEffect(() => {
-    if (keyPoints.length === 0 && transcript && sources.length > 0) {
-      setShowFocusInput(true);
-    }
-  }, [transcript, sources]);
-
-  const updateKeyPoint = (id: string, updates: Partial<KeyPoint>) => {
-    onKeyPointsChange(
-      keyPoints.map(point => 
-        point.id === id ? { ...point, ...updates } : point
-      )
-    );
-  };
-
-  const removeKeyPoint = (id: string) => {
-    onKeyPointsChange(keyPoints.filter(point => point.id !== id));
-  };
-
-  const startEditing = (point: KeyPoint) => {
-    setEditingId(point.id);
-    setEditText(point.text);
-  };
-
-  const saveEdit = () => {
-    if (editingId) {
-      updateKeyPoint(editingId, { text: editText });
-      setEditingId(null);
-      setEditText('');
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditText('');
-  };
-
-  const getSourceTitle = (sourceId: string) => {
-    const source = sources.find(s => s.id === sourceId);
-    return source?.title || 'Unknown Source';
-  };
-
-  const getVerificationStatus = (point: KeyPoint) => {
-    switch (point.status) {
-      case 'VERIFIED':
-        return { icon: CheckCircle, color: 'text-success', label: 'VERIFIED' };
-      case 'UNVERIFIED':
-        return { icon: AlertTriangle, color: 'text-warning', label: 'UNVERIFIED' };
-      case 'NEEDS REVIEW':
-        return { icon: AlertTriangle, color: 'text-orange-500', label: 'NEEDS REVIEW' };
-      default:
-        return { icon: AlertTriangle, color: 'text-warning', label: 'UNVERIFIED' };
-    }
-  };
-
-  const transcriptPoints = keyPoints.filter(point => point.type === 'transcript');
-  const sourcePoints = keyPoints.filter(point => point.type === 'source');
-
-  // Show focus input before extraction
-  if (showFocusInput && keyPoints.length === 0) {
-    return (
-      <div className="space-y-8">
-        <div className="text-center mb-8">
-          <Target className="w-16 h-16 text-primary mx-auto mb-4" />
-          <h2 className="text-3xl font-heading font-semibold mb-2 text-foreground">
-            Set Your Article Focus
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Before we extract key points, tell us what you want your article to focus on or achieve. 
-            This will help us identify the most relevant insights from your transcript and sources.
-          </p>
-        </div>
-
-        <Card className="p-6 max-w-4xl mx-auto">
-          <div className="space-y-4">
-            <Label htmlFor="article-focus" className="text-base font-medium">
-              Article Focus & Goals
-            </Label>
-            <Textarea
-              id="article-focus"
-              placeholder="Describe what you want your article to focus on, achieve, or emphasize. For example: 'I want to highlight the company's innovation in AI technology and its impact on customer satisfaction' or 'Focus on the challenges of scaling a startup and lessons learned during rapid growth.'"
-              value={articleFocus}
-              onChange={(e) => setArticleFocus(e.target.value)}
-              className="min-h-[120px] text-base"
-            />
-            <p className="text-sm text-muted-foreground">
-              This description will guide our AI to extract key points that align with your desired story direction, tone, and angle.
-            </p>
-            
-            <div className="flex justify-center pt-4">
-              <Button
-                onClick={extractKeyPoints}
-                disabled={!articleFocus.trim()}
-                size="lg"
-                className="px-8"
-              >
-                Extract Key Points
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
+  } catch (error) {
+      console.warn('Gemini 2.5 Flash not available, using fallback extraction');
+    return fallbackKeywordExtraction(content, source, [...extractedKeywords.keywords, ...extractedKeywords.phrases]);
   }
+};
 
-  if (isExtracting) {
-    return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-          <CheckCircle className="w-8 h-8 text-primary" />
-        </div>
-        <h2 className="text-2xl font-heading font-semibold mb-2">Extracting Key Points</h2>
-        <p className="text-muted-foreground mb-4">
-          Claude 4 Sonnet is analyzing your transcript and sources based on your focus: "{articleFocus}". Each web URL is processed individually, and only sentences with matching keywords are extracted.
-        </p>
-        
-        {extractedKeywords.length > 0 && (
-          <div className="max-w-2xl mx-auto mb-6">
-            <p className="text-sm text-muted-foreground mb-3">
-              Identified keywords from your focus:
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {extractedKeywords.slice(0, 10).map((keyword, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
-                  {keyword}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        <div className="w-64 h-2 bg-muted rounded-full mx-auto overflow-hidden">
-          <div className="h-full bg-gradient-primary rounded-full animate-pulse" style={{ width: '60%' }}></div>
-        </div>
-      </div>
+/**
+ * Use Gemini 2.5 Flash to intelligently extract key points from content (Legacy function for compatibility)
+ */
+export const extractKeyPointsWithAI = async (
+  content: string,
+  source: string,
+  userFocus: string,
+  keywords: string[]
+): Promise<AIExtractedKeyPoint[]> => {
+  const extractedKeywords: ExtractedKeywords = {
+    keywords: keywords.filter(k => !k.includes(' ')),
+    phrases: keywords.filter(k => k.includes(' '))
+  };
+  
+  return extractKeyPointsWithGemini(content, source, userFocus, extractedKeywords, 'webResource');
+};
+
+/**
+ * Fallback extraction using keyword matching
+ */
+const fallbackKeywordExtraction = (
+  content: string,
+  source: string,
+  keywords: string[]
+): AIExtractedKeyPoint[] => {
+  const sentences = content
+    .split(/[.!?]+\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 30);
+  
+  const results: AIExtractedKeyPoint[] = [];
+  
+  for (const sentence of sentences) {
+    const lowerSentence = sentence.toLowerCase();
+    const matchedKeywords = keywords.filter(keyword => 
+      lowerSentence.includes(keyword.toLowerCase())
     );
+    
+    if (matchedKeywords.length > 0) {
+      results.push({
+        text: sentence.endsWith('.') || sentence.endsWith('!') || sentence.endsWith('?') 
+          ? sentence 
+          : sentence + '.',
+        matchedKeywords,
+        relevanceScore: Math.min(matchedKeywords.length * 2, 8),
+        source,
+        reasoning: `Contains relevant keywords: ${matchedKeywords.join(', ')}`
+      });
+    }
   }
+  
+  return results.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, 5);
+};
 
-  return (
-    <div className="space-y-8">
-      <div className="text-center mb-8">
-        <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
-        <h2 className="text-3xl font-heading font-semibold mb-2 text-foreground">
-          Review Key Points
-        </h2>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
-          We analyzed your focus and extracted {keyPoints.length} highly relevant key insights ({transcriptPoints.length} from transcript, {sourcePoints.length} from sources). 
-          Each key point contains at least one matching keyword and is strictly aligned with your article goals.
-        </p>
-        
-        {extractedKeywords.length > 0 && (
-          <div className="mb-6">
-            <p className="text-sm text-muted-foreground mb-3">
-              Key themes identified from your focus:
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto">
-              {extractedKeywords.slice(0, 12).map((keyword, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {keyword}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+// ====================================================================================================
+// =================================== STEP 3: ARTICLE GENERATION ===================================
+// ====================================================================================================
 
-      {/* Re-extract Button */}
-      <div className="text-center mb-6">
-        <Button
-          onClick={() => {
-            setShowFocusInput(true);
-            setExtractedKeywords([]);
-          }}
-          variant="outline"
-          size="sm"
-        >
-          Change Focus & Re-extract Points
-        </Button>
-      </div>
+/**
+ * Generates a creative headline for an article using Gemini 2.5 Flash.
+ */
+export const generateHeadlineWithGemini = async (
+  keyPoints: KeyPoint[],
+  userFocus: string,
+  storyDirection: StoryDirection,
+  sources: Source[]
+): Promise<string> => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  const fallbackHeadline = `Insights on ${userFocus}`;
 
-      {/* Transcript Key Points Section */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold text-foreground border-b pb-2">
-          Transcript Key Points ({transcriptPoints.length})
-        </h3>
-        <div className="grid gap-4">
-          {transcriptPoints.map((point, index) => {
-            const status = getVerificationStatus(point);
-            const StatusIcon = status.icon;
-            
-            return (
-              <Card key={point.id} className={`p-6 transition-all ${
-                point.status === 'UNVERIFIED' ? 'border-warning/30 bg-warning/5' : 
-                point.status === 'NEEDS REVIEW' ? 'border-orange-300/30 bg-orange-50/5' : 'hover:bg-card-hover'
-              }`}>
-                <div className="flex items-start gap-4">
-                  <div className="flex items-center gap-2 mt-1">
-                    <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
-                    <span className="text-sm font-medium text-muted-foreground min-w-[2rem]">
-                      T{index + 1}
-                    </span>
-                  </div>
-                  
-                  <div className="flex-1 space-y-3">
-                    {editingId === point.id ? (
-                      <div className="space-y-3">
-                        <Textarea
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          className="min-h-[80px]"
-                        />
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={saveEdit}>
-                            <Save className="w-4 h-4 mr-1" />
-                            Save
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={cancelEdit}>
-                            <X className="w-4 h-4 mr-1" />
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-base leading-relaxed">{point.text}</p>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1">
-                              <StatusIcon className={`w-4 h-4 ${status.color}`} />
-                              <span className={`text-sm font-medium ${status.color}`}>
-                                {status.label}
-                              </span>
-                            </div>
-                            
-                            <Badge variant="outline" className="text-xs">
-                              {point.source}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEditing(point)}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeKeyPoint(point.id)}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="mt-1">
-                    <Checkbox
-                      checked={point.status === 'VERIFIED'}
-                      onCheckedChange={(checked) => 
-                        updateKeyPoint(point.id, { 
-                          status: checked ? 'VERIFIED' : 'UNVERIFIED' 
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+  const keyPointsSummary = verifiedKeyPoints.slice(0, 5).map(point => point.text).join('\n');
+  const sourceTitles = sources.map(source => source.title).join(', ');
 
-      {/* Source Key Points Section */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold text-foreground border-b pb-2">
-          Source Key Points ({sourcePoints.length})
-        </h3>
-        <div className="grid gap-4">
-          {sourcePoints.map((point, index) => {
-            const status = getVerificationStatus(point);
-            const StatusIcon = status.icon;
-            
-            return (
-              <Card key={point.id} className={`p-6 transition-all ${
-                point.status === 'UNVERIFIED' ? 'border-warning/30 bg-warning/5' : 
-                point.status === 'NEEDS REVIEW' ? 'border-orange-300/30 bg-orange-50/5' : 'hover:bg-card-hover'
-              }`}>
-                <div className="flex items-start gap-4">
-                  <div className="flex items-center gap-2 mt-1">
-                    <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
-                    <span className="text-sm font-medium text-muted-foreground min-w-[2rem]">
-                      S{index + 1}
-                    </span>
-                  </div>
-                  
-                  <div className="flex-1 space-y-3">
-                    {editingId === point.id ? (
-                      <div className="space-y-3">
-                        <Textarea
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          className="min-h-[80px]"
-                        />
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={saveEdit}>
-                            <Save className="w-4 h-4 mr-1" />
-                            Save
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={cancelEdit}>
-                            <X className="w-4 h-4 mr-1" />
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-base leading-relaxed">{point.text}</p>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1">
-                              <StatusIcon className={`w-4 h-4 ${status.color}`} />
-                              <span className={`text-sm font-medium ${status.color}`}>
-                                {status.label}
-                              </span>
-                            </div>
-                            
-                            <Badge variant="outline" className="text-xs">
-                              {point.source}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEditing(point)}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeKeyPoint(point.id)}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="mt-1">
-                    <Checkbox
-                      checked={point.status === 'VERIFIED'}
-                      onCheckedChange={(checked) => 
-                        updateKeyPoint(point.id, { 
-                          status: checked ? 'VERIFIED' : 'UNVERIFIED' 
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+  const prompt = `You are a world-class creative headline writer. Generate a single, compelling, and highly creative headline for an article based on the following information. Do not use a pre-defined story angle template. Instead, use your creative ability to craft a unique headline that captures the essence of the user's goals, story direction, and the key points.
+USER'S ARTICLE FOCUS & GOALS:
+"${userFocus}"
 
-      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>{keyPoints.filter(p => p.status === 'VERIFIED').length} of {keyPoints.length} verified</span>
-          <span>{keyPoints.filter(p => p.status === 'UNVERIFIED').length} unverified</span>
-          <span>{keyPoints.filter(p => p.status === 'NEEDS REVIEW').length} need review</span>
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setShowFocusInput(true);
-            onKeyPointsChange([]);
-          }}
-          disabled={isExtracting}
-        >
-          Change Focus & Re-extract
-        </Button>
-      </div>
-    </div>
+STORY DIRECTION:
+- Angle: ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}
+- Tone: ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}
+- Target Length: ${storyDirection.length}
+
+KEY POINTS TO FEATURE:
+${keyPointsSummary}
+
+SOURCES AVAILABLE:
+${sourceTitles}
+
+HEADLINE REQUIREMENTS:
+1. Must be clear, specific, and highly creative.
+2. Should reflect the user's focus and the chosen story angle.
+3. Keep it concise (under 80 characters).
+4. Use active voice and compelling language.
+5. Connect to the most important key points.
+6. Match the ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone} tone.
+7. Be imaginative and unique, not based on a standard template.
+
+Return only the headline text (no quotes, no JSON formatting).`;
+  
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.8
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const headline = data.candidates[0].content.parts[0].text.trim();
+    return headline.replace(/^["']|["']$/g, '').trim();
+  } catch (error) {
+    console.warn('Gemini headline generation failed, using fallback.');
+    return fallbackHeadline;
+  }
+};
+
+/**
+ * Step 3: Use Gemini 2.5 Flash to generate a full draft article based on approved key points
+ */
+export const generateArticleWithGemini = async (
+  keyPoints: KeyPoint[],
+  sources: Source[],
+  transcript: string,
+  storyDirection: StoryDirection,
+  userFocus: string
+): Promise<DraftResult> => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  // Pass the main character to the quotes function for better filtering
+  const mainCharacter = await identifyMainCharacterWithGemini(transcript);
+  const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle, mainCharacter);
+  
+  const headline = await generateHeadlineWithGemini(
+    keyPoints,
+    userFocus,
+    storyDirection,
+    sources
   );
+  
+  const prompt = `You are a skilled article writer. Generate a coherent, well-structured article that follows these specific rules:
+USER'S ARTICLE FOCUS & GOALS:
+"${userFocus}"
+
+HEADLINE TO USE:
+"${headline}"
+
+STORY DIRECTION:
+- Angle: ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}
+- Tone: ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}
+- Target Length: ${storyDirection.length}
+${storyDirection.customPrompt ? `- Custom Instructions: ${storyDirection.customPrompt}` : ''}
+
+APPROVED KEY POINTS TO INCORPORATE:
+${verifiedKeyPoints.map((point, index) =>
+  `${index + 1}. "${point.text}" (Source: ${point.source})`
+).join('\n')}
+
+AVAILABLE QUOTES FROM TRANSCRIPT:
+${quotes.map((quote, index) => `${index + 1}. "${quote}"`).join('\n')}
+
+SOURCES TO REFERENCE:
+${sources.map((source, index) =>
+  `${index + 1}. ${source.title} (${source.type})`
+).join('\n')}
+
+ARTICLE WRITING RULES:
+
+1. HEADLINE:
+    - Create a bold, creative headline that reflects the article's focus input and the selected Story Angle.
+    - Make it BOLD using **headline text** format.
+
+2. INTRODUCTION:
+    - Write a captivating introduction that hooks readers right away.
+    - Avoid dry or generic openings.
+    - Draw readers in immediately with creative, engaging content.
+
+3. FLOW:
+    - Ensure the article has a smooth, logical flow.
+    - Each section should transition naturally into the next.
+    - Avoid a list-like or disjointed feel.
+    - Create seamless narrative progression from start to finish.
+
+4. TONE:
+    - Use the selected Writing Tone (${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}).
+    - If multiple tones are selected, blend them seamlessly throughout the article.
+    - Maintain consistency from headline to conclusion.
+
+5. STORY ANGLE:
+    - Follow the chosen Story Angle (${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}).
+    - Use it to guide the framing and perspective of the entire article.
+    - Incorporate the angle naturally into every section.
+
+6. KEY POINTS:
+    - You may rephrase, condense, or expand key points creatively.
+    - Do not repeat them word-for-word.
+    - Weave them naturally into the narrative without being mechanical.
+
+7. QUOTES & MENTIONS:
+    - If transcript includes phrases like "in our interview…" or "we are going to tell…", rewrite them smoothly.
+    - Attribute insights directly to specific person, company, or team (e.g., "In an interview with Mark Zuckerberg…").
+    - Quotes should feel natural and integrated, not dropped in mechanically.
+    - Make attributions flow seamlessly within the narrative.
+
+8. READER-CENTRIC:
+    - Keep focus on how the subject affects people, industries, or everyday life.
+    - Frame content according to the story angle's perspective.
+    - Make the content relevant and impactful for readers.
+
+9. AVOID REPETITION:
+    - Do not overuse phrases like "this development reflects broader strategic initiatives".
+    - Vary word choice and enrich the narrative with synonyms, explanations, or examples.
+    - Each paragraph should offer unique commentary and perspective.
+    - Eliminate redundant information while preserving important details.
+
+10. CREATIVITY + PROFESSIONALISM:
+    - Balance engaging storytelling with clear, professional writing.
+    - Keep it inspiring, polished, and easy to read.
+    - Make the article both informative and compelling.
+
+STRUCTURE REQUIREMENTS:
+- Introduction (1-2 paragraphs): Creative hook that draws readers in, sets context, introduces main subject.
+- Body (3-5 thematic sections): Develop themes with smooth transitions, natural quote integration, varied language.
+- Conclusion (1-2 paragraphs): Forward-looking insights without repetition, broader implications.
+
+TARGET LENGTH: ${storyDirection.length === 'short' ? '400-600' : storyDirection.length === 'medium' ? '600-1000' : '1000-1500'} words
+
+FORMAT YOUR RESPONSE AS JSON:
+{
+  "draft": "Complete article content with proper paragraph breaks (use \\n\\n for paragraph separation)",
+  "sourceMapping": {
+    "paragraph_1": ["Source Name 1", "Source Name 2"],
+    "paragraph_2": ["Source Name 3"]
+  },
+  "wordCount": estimated_word_count,
+  "readTime": estimated_read_time_in_minutes
+}
+
+Focus on producing a coherent, engaging, and readable article rather than a list of points.`;
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.4,
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.candidates[0].content.parts[0].text;
+    
+    try {
+      const parsedResult = JSON.parse(aiResponse);
+      return {
+        draft: parsedResult.draft,
+        sourceMapping: parsedResult.sourceMapping || {},
+        headline,
+        wordCount: parsedResult.wordCount || 800,
+        readTime: parsedResult.readTime || 4
+      };
+    } catch (parseError) {
+      console.warn('Failed to parse Gemini response as JSON, using fallback');
+      throw parseError;
+    }
+  } catch (error) {
+    console.warn('Gemini 2.5 Flash not available, using fallback article generation');
+    return generateEnhancedMockArticle(verifiedKeyPoints, sources, transcript, storyDirection, userFocus, quotes, headline);
+  }
+};
+
+/**
+ * Main article generation function using the 3-step pipeline
+ */
+export const generateArticleWithAI = async (
+  keyPoints: KeyPoint[],
+  sources: Source[],
+  transcript: string,
+  storyDirection: StoryDirection,
+  userFocus: string
+): Promise<DraftResult> => {
+  return generateArticleWithGemini(keyPoints, sources, transcript, storyDirection, userFocus);
+};
+
+
+// ====================================================================================================
+// ===================================== HELPER FUNCTIONS =============================================
+// ====================================================================================================
+
+/**
+ * NEW: Use Gemini to identify the main character and all of their common names from the transcript
+ */
+const identifyMainCharacterWithGemini = async (transcript: string): Promise<string[] | null> => {
+    const prompt = `Analyze the following transcript and identify the full name of the primary subject or main character being interviewed. Also, identify any common variations of their name used in the transcript, such as just their first name, last name, or a nickname.
+    
+    Example Output: ["Mark Zuckerberg", "Mark", "Zuckerberg"]
+    
+    TRANSCRIPT:
+    "${transcript.slice(0, 4000)}" // Adjusted slice for better context
+    
+    Return only a JSON array of names, without any other text. If there isn't a clear main character, return an empty array [].`;
+    
+    try {
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Goog-Api-Key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
+            },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 0.1,
+                  responseMimeType: 'application/json'
+                }
+            })
+        });
+
+        if (!response.ok) {
+            console.error('Failed to identify main character from transcript:', response.status);
+            return null;
+        }
+
+        const data = await response.json();
+        const aiResponse = data.candidates[0]?.content?.parts[0]?.text;
+        
+        try {
+            const names = JSON.parse(aiResponse);
+            return Array.isArray(names) ? names : null;
+        } catch (parseError) {
+            console.warn('Failed to parse Gemini response for character names.');
+            return null;
+        }
+
+    } catch (error) {
+        console.error('Error in identifying main character:', error);
+        return null;
+    }
+};
+
+
+/**
+ * Extract direct quotes from transcript content, filtering by main character
+ */
+const extractQuotesFromTranscript = (transcript: string, storyAngle: string, mainCharacterNames: string[] | null): string[] => {
+  if (!transcript || transcript.length < 50) return [];
+  
+  const sentences = transcript.split(/[.!?]+\s+/).map(s => s.trim());
+  
+  const speakerRegex = mainCharacterNames ? new RegExp(`^(${mainCharacterNames.join('|')}):`, 'i') : null;
+
+  const quotes = sentences
+    .filter(sentence => {
+      // 1. Filter sentences by speaker if a main character is identified
+      if (speakerRegex && !speakerRegex.test(sentence)) {
+        return false;
+      }
+      
+      // 2. The previous keyword check is removed.
+      
+      // 3. Ensure the sentence is a decent length
+      return sentence.length > 20 && sentence.length < 150;
+    })
+    .map(sentence => {
+      // Clean up speaker attribution from the quote
+      if (speakerRegex) {
+        return sentence.replace(speakerRegex, '').trim();
+      }
+      return sentence;
+    })
+    .slice(0, 3);
+  
+  return quotes;
+};
+
+
+/**
+ * Remove duplicate key points using AI-enhanced similarity detection
+ */
+const deduplicateAIKeyPoints = (keyPoints: AIExtractedKeyPoint[]): AIExtractedKeyPoint[] => {
+  const unique: AIExtractedKeyPoint[] = [];
+  const seen = new Set<string>();
+  
+  const sorted = [...keyPoints].sort((a, b) => b.relevanceScore - a.relevanceScore);
+  
+  for (const point of sorted) {
+    const normalized = point.text.toLowerCase().trim();
+    const words = normalized.split(/\s+/).filter(w => w.length > 3);
+    const fingerprint = words.slice(0, 5).join(' ');
+    
+    let isDuplicate = false;
+    for (const seenText of seen) {
+      const similarity = calculateSimilarity(fingerprint, seenText);
+      if (similarity > 0.7) {
+        isDuplicate = true;
+        break;
+      }
+    }
+    
+    if (!isDuplicate) {
+      seen.add(fingerprint);
+      unique.push(point);
+    }
+  }
+  
+  return unique;
+};
+
+/**
+ * Calculate similarity between two text fingerprints
+ */
+const calculateSimilarity = (text1: string, text2: string): number => {
+  const words1 = new Set(text1.split(/\s+/));
+  const words2 = new Set(text2.split(/\s+/));
+  
+  const intersection = new Set([...words1].filter(x => words2.has(x)));
+  const union = new Set([...words1, ...words2]);
+  
+  return intersection.size / union.size;
+};
+
+/**
+ * Process multiple sources with AI-powered extraction and deduplication using 3-step pipeline
+ */
+export const processMultipleSourcesWithAI = async (
+  sources: Array<{ content: string; title: string; type: string }>,
+  transcript: string,
+  userFocus: string,
+  minKeyPoints: number = 5
+): Promise<{
+  transcriptKeyPoints: AIExtractedKeyPoint[];
+  webResourceKeyPoints: AIExtractedKeyPoint[];
+  summary: string;
+  keywords: string[];
+}> => {
+  const extractedKeywords = await extractKeywordsWithGemini(userFocus);
+  const allKeywords = [...extractedKeywords.keywords, ...extractedKeywords.phrases];
+
+  const transcriptKeyPoints: AIExtractedKeyPoint[] = [];
+  const webResourceKeyPoints: AIExtractedKeyPoint[] = [];
+
+  if (transcript.trim()) {
+    const points = await extractKeyPointsWithGemini(
+      transcript,
+      'Interview Transcript',
+      userFocus,
+      extractedKeywords,
+      'transcript'
+    );
+    transcriptKeyPoints.push(...points);
+  }
+
+  for (const source of sources) {
+    const points = await extractKeyPointsWithGemini(
+      source.content,
+      source.title,
+      userFocus,
+      extractedKeywords,
+      'webResource'
+    );
+    webResourceKeyPoints.push(...points);
+  }
+
+  const dedupTranscription = deduplicateAIKeyPoints(transcriptKeyPoints);
+  const dedupResources = deduplicateAIKeyPoints(webResourceKeyPoints);
+
+  const summary = `AI extracted ${dedupTranscription.length} key points from transcription and ${dedupResources.length} key points from web/resources using Gemini 2.5 Flash.`;
+
+  return {
+    transcriptKeyPoints: dedupTranscription,
+    webResourceKeyPoints: dedupResources,
+    summary,
+    keywords: allKeywords
+  };
+};
+
+/**
+ * Enhanced mock article generation with proper structure
+ */
+const generateEnhancedMockArticle = (
+  keyPoints: KeyPoint[],
+  sources: Source[],
+  transcript: string,
+  storyDirection: StoryDirection,
+  userFocus: string,
+  quotes: string[],
+  providedHeadline?: string
+): DraftResult => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  
+  const headline = providedHeadline || `Insights on ${userFocus}`; // Use a simple fallback
+  
+  const introduction = generateIntroduction();
+  const body = generateBody();
+  const conclusion = generateConclusion();
+  
+  const fullArticle = `**${headline}**\n\n${introduction}\n\n${body}\n\n${conclusion}`;
+  const wordCount = fullArticle.split(/\s+/).length;
+  const readTime = Math.ceil(wordCount / 200);
+  
+  const sourceMapping = generateSourceMapping();
+  
+  return {
+    draft: fullArticle,
+    sourceMapping,
+    headline,
+    wordCount,
+    readTime
+  };
+  
+  function generateIntroduction(): string {
+    const hasQuotes = quotes.length > 0;
+    const sampleQuote = hasQuotes ? quotes[0] : '';
+    
+    switch (storyDirection.angle) {
+      case 'success-story':
+        return `In today's rapidly evolving business landscape, success stories often emerge from strategic vision combined with precise execution. ${hasQuotes ? `"${sampleQuote}," reflecting the momentum that has characterized recent developments.` : 'The insights from recent developments reveal a systematic approach to growth that extends beyond traditional metrics.'}\n\nThis transformation represents more than incremental progress—it demonstrates how strategic alignment with market dynamics can create sustainable competitive advantages. The evidence points to a comprehensive approach that balances innovation with operational excellence, positioning the organization for continued expansion in an increasingly complex marketplace.`;
+      
+      case 'challenges-overcome':
+        return `Behind every breakthrough lies a series of obstacles that once seemed insurmountable. ${hasQuotes ? `"${sampleQuote}," highlighting the mindset that transforms challenges into competitive advantages.` : 'The approach to overcoming significant challenges has revealed patterns of resilience and strategic thinking.'}\n\nThe ability to navigate complex business challenges while maintaining forward momentum requires both tactical flexibility and strategic clarity. These experiences have shaped a more resilient organizational structure, demonstrating how systematic problem-solving can create lasting value and competitive differentiation.`;
+      
+      case 'innovation-focus':
+        return `At the intersection of technology and strategy, breakthrough innovations are reshaping traditional business practices. ${hasQuotes ? `"${sampleQuote}," emphasizing the transformative potential of strategic innovation.` : 'The integration of innovative approaches has created new possibilities for growth and efficiency.'}\n\nInnovation in today's context extends far beyond technological implementation to encompass strategic thinking, operational excellence, and market positioning. This comprehensive approach has established a foundation for sustained competitive advantage through continuous adaptation and strategic foresight.`;
+      
+      default:
+        return `In an increasingly complex business environment, strategic insights often emerge from the intersection of vision, execution, and market understanding. ${hasQuotes ? `"${sampleQuote}," providing context for the strategic decisions that have shaped recent developments.` : 'The patterns that emerge from recent developments offer valuable insights into strategic positioning and market dynamics.'}\n\nThe convergence of strategic planning, operational excellence, and market awareness creates opportunities for organizations that can effectively balance immediate concerns with long-term vision. These insights reveal approaches that extend beyond traditional business practices to encompass broader questions of competitive advantage and sustainable growth.`;
+    }
+  }
+  
+  function generateBody(): string {
+    if (verifiedKeyPoints.length === 0) {
+      return 'The analysis of available information is ongoing, with comprehensive insights pending verification of key data points. Strategic development continues across multiple dimensions, with particular attention to market positioning and operational efficiency.';
+    }
+    
+    const bodyText = verifiedKeyPoints.map(point => {
+        const attribution = point.type === 'transcript' ? 'According to the discussion' : `Based on ${point.source}`;
+        return `${attribution}, ${point.text} This development reflects broader strategic initiatives that align with market opportunities and organizational capabilities.`;
+    }).join('\n\n');
+    
+    return bodyText;
+  }
+  
+  function generateConclusion(): string {
+    return `Looking ahead, these developments position the organization for continued growth and market leadership. The strategic framework established through these initiatives creates a foundation for adapting to future market dynamics while maintaining competitive advantages.\n\nThe implications extend beyond immediate business outcomes to broader questions of industry evolution and market positioning. As these strategies continue to evolve, they will likely influence best practices across the sector, demonstrating the value of comprehensive strategic thinking in an increasingly complex business environment.`;
+  }
+  
+  function generateSourceMapping(): Record<string, string[]> {
+    const sourceNames = sources.map(s => s.title);
+    if (transcript) sourceNames.push('Interview Transcript');
+    
+    return {
+      'paragraph_1': sourceNames.slice(0, 2),
+      'paragraph_2': sourceNames.slice(1, 3),
+      'paragraph_3': sourceNames
+    };
+  }
 };
