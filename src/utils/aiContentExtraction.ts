@@ -11,7 +11,6 @@ export interface AIExtractedKeyPoint {
 export interface ExtractedKeywords {
   keywords: string[];
   phrases: string[];
-  mainThemes: string[];
 }
 
 // ============= STEP 1: KEYWORD EXTRACTION (Claude 4 Sonnet) =============
