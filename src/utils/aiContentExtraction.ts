@@ -392,7 +392,7 @@ export const generateArticleWithGemini = async (
   userFocus: string
 ): Promise<DraftResult> => {
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
-  const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
+  const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle, userFocus);
   
   const headline = await generateHeadlineWithGemini(
     keyPoints,
@@ -459,11 +459,15 @@ ARTICLE WRITING RULES:
     - Do not repeat them word-for-word.
     - Weave them naturally into the narrative without being mechanical.
 
-7. QUOTES & MENTIONS:
+7. QUOTES & MENTIONS (CRITICAL REQUIREMENT):
+    - MUST include at least one direct quote from the main character that strongly connects to the article's focus and goals.
+    - This primary quote should be woven naturally into the chosen Story Angle and support the article's main narrative.
+    - Additional quotes may be used only when they enhance clarity, credibility, or storytelling flow—avoid over-quoting.
     - If transcript includes phrases like "in our interview…" or "we are going to tell…", rewrite them smoothly.
-    - Attribute insights directly to specific person, company, or team (e.g., "In an interview with Mark Zuckerberg…").
+    - Attribute insights directly to specific person, company, or team (e.g., "In an interview with [Name]…").
     - Quotes should feel natural and integrated, not dropped in mechanically.
     - Make attributions flow seamlessly within the narrative.
+    - Ensure the primary quote directly reinforces the article's focus and chosen story angle.
 
 8. READER-CENTRIC:
     - Keep focus on how the subject affects people, industries, or everyday life.
@@ -615,33 +619,56 @@ const calculateSimilarity = (text1: string, text2: string): number => {
 };
 
 /**
- * Extract direct quotes from transcript content
+ * Extract direct quotes from transcript content that connect to article focus
  */
-const extractQuotesFromTranscript = (transcript: string, storyAngle: string): string[] => {
+const extractQuotesFromTranscript = (transcript: string, storyAngle: string, userFocus?: string): string[] => {
   if (!transcript || transcript.length < 50) return [];
   
   const sentences = transcript
     .split(/[.!?]+\s+/)
     .map(s => s.trim())
-    .filter(s => s.length > 20 && s.length < 150);
+    .filter(s => s.length > 30 && s.length < 200);
   
+  // Enhanced quotable patterns that connect to story angles and user focus
   const quotablePatterns = {
-    'success-story': ['grew', 'increased', 'achieved', 'success', 'results', 'momentum'],
-    'challenges-overcome': ['challenge', 'obstacle', 'overcome', 'solution', 'learned', 'adapt'],
-    'innovation-focus': ['innovation', 'technology', 'breakthrough', 'transform', 'future', 'possibilities'],
-    'default': ['important', 'significant', 'key', 'focus', 'believe', 'think']
+    'success-story': ['grew', 'increased', 'achieved', 'success', 'results', 'momentum', 'exceeded', 'milestone', 'breakthrough', 'transformed'],
+    'challenges-overcome': ['challenge', 'obstacle', 'overcome', 'solution', 'learned', 'adapt', 'difficult', 'struggle', 'persevere', 'resilience'],
+    'innovation-focus': ['innovation', 'technology', 'breakthrough', 'transform', 'future', 'possibilities', 'reimagine', 'pioneer', 'cutting-edge', 'revolutionary'],
+    'default': ['important', 'significant', 'key', 'focus', 'believe', 'think', 'vision', 'strategy', 'approach', 'impact']
   };
   
   const patterns = quotablePatterns[storyAngle as keyof typeof quotablePatterns] || quotablePatterns.default;
   
-  const quotes = sentences
-    .filter(sentence => {
-      const lowerSentence = sentence.toLowerCase();
-      return patterns.some(pattern => lowerSentence.includes(pattern));
-    })
-    .slice(0, 3);
+  // Filter quotes that match story angle patterns
+  let relevantQuotes = sentences.filter(sentence => {
+    const lowerSentence = sentence.toLowerCase();
+    return patterns.some(pattern => lowerSentence.includes(pattern));
+  });
+
+  // If user focus is provided, prioritize quotes that also connect to the focus
+  if (userFocus) {
+    const focusKeywords = userFocus.toLowerCase().split(/\s+/).filter(word => word.length > 3);
+    const focusConnectedQuotes = relevantQuotes.filter(quote => {
+      const lowerQuote = quote.toLowerCase();
+      return focusKeywords.some(keyword => lowerQuote.includes(keyword));
+    });
+    
+    // Prioritize focus-connected quotes, but still include other relevant ones
+    relevantQuotes = [
+      ...focusConnectedQuotes.slice(0, 2), // Up to 2 focus-connected quotes first
+      ...relevantQuotes.filter(quote => !focusConnectedQuotes.includes(quote)).slice(0, 1) // Up to 1 additional relevant quote
+    ];
+  }
   
-  return quotes;
+  // Ensure we have at least one quote if transcript contains quotable content
+  if (relevantQuotes.length === 0 && sentences.length > 0) {
+    // Fallback: pick the most substantial sentences
+    relevantQuotes = sentences
+      .filter(s => s.length > 50)
+      .slice(0, 1);
+  }
+  
+  return relevantQuotes.slice(0, 3);
 };
 
 /**
