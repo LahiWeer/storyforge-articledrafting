@@ -36,7 +36,8 @@ INSTRUCTIONS:
 FORMAT YOUR RESPONSE AS JSON:
 {
   "keywords": ["keyword1", "keyword2", "keyword3"],
-  "phrases": ["key phrase 1", "key phrase 2", "key phrase 3"]
+  "phrases": ["key phrase 1", "key phrase 2", "key phrase 3"],
+  "mainThemes": ["theme1", "theme2", "theme3"]
 }
 
 Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent the user's desired focus.`;
@@ -304,7 +305,29 @@ const calculateFocusAlignment = (sentence: string, userFocus: string): number =>
   return Math.min(alignmentScore * 0.5, 3);
 };
 
-
+/**
+ * Identify main theme from matched keywords
+ */
+const getMainTheme = (sentence: string, matchedKeywords: string[]): string => {
+  // Simple theme detection based on keywords
+  const themes = {
+    'growth': ['growth', 'increase', 'expand', 'scale', 'develop'],
+    'technology': ['technology', 'AI', 'machine learning', 'innovation', 'digital'],
+    'users': ['user', 'customer', 'client', 'engagement', 'satisfaction'],
+    'business': ['revenue', 'profit', 'market', 'business', 'strategy'],
+    'team': ['team', 'employee', 'collaboration', 'workforce', 'hiring']
+  };
+  
+  for (const [theme, themeKeywords] of Object.entries(themes)) {
+    if (matchedKeywords.some(keyword => 
+      themeKeywords.some(themeWord => keyword.toLowerCase().includes(themeWord))
+    )) {
+      return theme;
+    }
+  }
+  
+  return matchedKeywords[0] || 'business insights';
+};
 
 /**
  * Fallback extraction using keyword matching
@@ -515,7 +538,181 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
   return quotes;
 };
 
+// ============= STEP 3: ARTICLE GENERATION (GPT-5) =============
 
+/**
+ * Step 3: Use GPT-5 to generate a full draft article based on approved key points
+ */
+export const generateArticleWithGPT5 = async (
+  keyPoints: KeyPoint[],
+  sources: Source[],
+  transcript: string,
+  storyDirection: StoryDirection,
+  userFocus: string
+): Promise<DraftResult> => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
+  
+  // First, generate the headline using Claude 4 Sonnet
+  const headline = await generateHeadlineWithClaudeSonnet(
+    keyPoints,
+    userFocus,
+    storyDirection,
+    sources
+  );
+  
+  const prompt = `You are a skilled article writer. Generate a coherent, well-structured article that follows these specific rules:
+
+USER'S ARTICLE FOCUS & GOALS:
+"${userFocus}"
+
+HEADLINE TO USE:
+"${headline}"
+
+STORY DIRECTION:
+- Angle: ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}
+- Tone: ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}
+- Target Length: ${storyDirection.length}
+${storyDirection.customPrompt ? `- Custom Instructions: ${storyDirection.customPrompt}` : ''}
+
+APPROVED KEY POINTS TO INCORPORATE:
+${verifiedKeyPoints.map((point, index) => 
+  `${index + 1}. "${point.text}" (Source: ${point.source})`
+).join('\n')}
+
+AVAILABLE QUOTES FROM TRANSCRIPT:
+${quotes.map((quote, index) => `${index + 1}. "${quote}"`).join('\n')}
+
+SOURCES TO REFERENCE:
+${sources.map((source, index) => 
+  `${index + 1}. ${source.title} (${source.type})`
+).join('\n')}
+
+ARTICLE WRITING RULES:
+
+1. HEADLINE:
+   - Create a bold, creative headline that reflects the article's focus input and the selected Story Angle
+   - Make it BOLD using **headline text** format
+
+2. INTRODUCTION:
+   - Write a captivating introduction that hooks readers right away
+   - Avoid dry or generic openings
+   - Draw readers in immediately with creative, engaging content
+
+3. FLOW:
+   - Ensure the article has a smooth, logical flow
+   - Each section should transition naturally into the next
+   - Avoid a list-like or disjointed feel
+   - Create seamless narrative progression from start to finish
+
+4. TONE:
+   - Use the selected Writing Tone (${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone})
+   - If multiple tones are selected, blend them seamlessly throughout the article
+   - Maintain consistency from headline to conclusion
+
+5. STORY ANGLE:
+   - Follow the chosen Story Angle (${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle})
+   - Use it to guide the framing and perspective of the entire article
+   - Incorporate the angle naturally into every section
+
+6. KEY POINTS:
+   - You may rephrase, condense, or expand key points creatively
+   - Do not repeat them word-for-word
+   - Weave them naturally into the narrative without being mechanical
+
+7. QUOTES & MENTIONS:
+   - If transcript includes phrases like "in our interview…" or "we are going to tell…", rewrite them smoothly
+   - Attribute insights directly to specific person, company, or team (e.g., "In an interview with Mark Zuckerberg…")
+   - Quotes should feel natural and integrated, not dropped in mechanically
+   - Make attributions flow seamlessly within the narrative
+
+8. READER-CENTRIC:
+   - Keep focus on how the subject affects people, industries, or everyday life
+   - Frame content according to the story angle's perspective
+   - Make the content relevant and impactful for readers
+
+9. AVOID REPETITION:
+   - Do not overuse phrases like "this development reflects broader strategic initiatives"
+   - Vary word choice and enrich the narrative with synonyms, explanations, or examples
+   - Each paragraph should offer unique commentary and perspective
+   - Eliminate redundant information while preserving important details
+
+10. CREATIVITY + PROFESSIONALISM:
+    - Balance engaging storytelling with clear, professional writing
+    - Keep it inspiring, polished, and easy to read
+    - Make the article both informative and compelling
+
+STRUCTURE REQUIREMENTS:
+- Introduction (1-2 paragraphs): Creative hook that draws readers in, sets context, introduces main subject
+- Body (3-5 thematic sections): Develop themes with smooth transitions, natural quote integration, varied language
+- Conclusion (1-2 paragraphs): Forward-looking insights without repetition, broader implications
+
+TARGET LENGTH: ${storyDirection.length === 'short' ? '400-600' : storyDirection.length === 'medium' ? '600-1000' : '1000-1500'} words
+
+FORMAT YOUR RESPONSE AS JSON:
+{
+  "draft": "Complete article content with proper paragraph breaks (use \\n\\n for paragraph separation)",
+  "sourceMapping": {
+    "paragraph_1": ["Source Name 1", "Source Name 2"],
+    "paragraph_2": ["Source Name 3"]
+  },
+  "wordCount": estimated_word_count,
+  "readTime": estimated_read_time_in_minutes
+}
+
+Focus on producing a coherent, engaging, and readable article rather than a list of points.`;
+
+  try {
+    // Note: API keys should be provided via secure backend integration
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER', // Should be handled via backend
+      },
+      body: JSON.stringify({
+        model: 'gpt-5',
+        max_tokens: 8000,
+        temperature: 0.4,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a world-class journalist and content strategist specializing in creating engaging, well-structured articles.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content;
+    
+    try {
+      const parsedResult = JSON.parse(aiResponse);
+      return {
+        draft: parsedResult.draft,
+        sourceMapping: parsedResult.sourceMapping || {},
+        headline,
+        wordCount: parsedResult.wordCount || 800,
+        readTime: parsedResult.readTime || 4
+      };
+    } catch (parseError) {
+      console.warn('Failed to parse GPT-5 response as JSON, using fallback');
+      throw parseError;
+    }
+  } catch (error) {
+    console.warn('GPT-5 not available, using fallback article generation');
+    // Fallback to enhanced mock generation
+    return generateEnhancedMockArticle(verifiedKeyPoints, sources, transcript, storyDirection, userFocus, quotes, headline);
+  }
+};
 
 /**
  * Main article generation function using the 3-step pipeline
