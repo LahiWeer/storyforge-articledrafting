@@ -143,7 +143,7 @@ export const KeyPointsReview = ({
       
       toast({
         title: "AI-powered key points extracted",
-        description: `Claude 4 Sonnet extracted ${convertedKeyPoints.length} focused key points (${transcriptCount} from transcript, ${sourceCount} from sources). Each point contains relevant keywords and aligns with your article goals.`,
+        description: `We extracted ${convertedKeyPoints.length} focused key points (${transcriptCount} from transcript, ${sourceCount} from sources). Each point contains relevant keywords and aligns with your article goals.`,
       });
     } catch (error) {
       console.error('AI extraction failed:', error);
@@ -301,7 +301,7 @@ export const KeyPointsReview = ({
           Review Key Points
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
-          We analyzed your focus "{articleFocus}" and extracted {keyPoints.length} highly relevant key insights ({transcriptPoints.length} from transcript, {sourcePoints.length} from sources). 
+          We analyzed your focus and extracted {keyPoints.length} highly relevant key insights ({transcriptPoints.length} from transcript, {sourcePoints.length} from sources). 
           Each key point contains at least one matching keyword and is strictly aligned with your article goals.
         </p>
         
