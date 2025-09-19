@@ -1,4 +1,4 @@
-// AI-powered content extraction with 3-step pipeline: GPT-5 → Claude 4 Sonnet → GPT-5
+// AI-powered content extraction with 3-step pipeline: Claude 4 Sonnet → Claude 4 Sonnet → GPT-5
 
 export interface AIExtractedKeyPoint {
   text: string;
@@ -14,12 +14,12 @@ export interface ExtractedKeywords {
   mainThemes: string[];
 }
 
-// ============= STEP 1: KEYWORD EXTRACTION (GPT-5) =============
+// ============= STEP 1: KEYWORD EXTRACTION (Claude 4 Sonnet) =============
 
 /**
- * Step 1: Use GPT-5 to analyze user's focus and extract main keywords and key phrases
+ * Step 1: Use Claude 4 Sonnet to analyze user's focus and extract main keywords and key phrases
  */
-export const extractKeywordsWithGPT5 = async (userFocus: string): Promise<ExtractedKeywords> => {
+export const extractKeywordsWithClaudeSonnet = async (userFocus: string): Promise<ExtractedKeywords> => {
   const prompt = `You are an expert content strategist. Analyze the user's focus input and extract the main keywords and key phrases that represent their desired focus for the article.
 
 USER'S ARTICLE FOCUS:
@@ -44,21 +44,19 @@ Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent
 
   try {
     // Note: API keys should be provided via secure backend integration
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // This is a placeholder for demonstration - in production, use secure backend proxy
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER', // Should be handled via backend
+        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER', // Should be handled via backend
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'gpt-5',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
         temperature: 0.2,
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert content strategist specializing in keyword and theme extraction.'
-          },
           {
             role: 'user',
             content: prompt
@@ -68,11 +66,11 @@ Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Claude API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const aiResponse = data.content[0].text;
     
     try {
       const parsed = JSON.parse(aiResponse);
@@ -82,21 +80,13 @@ Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent
         mainThemes: parsed.mainThemes || []
       };
     } catch (parseError) {
-      console.warn('Failed to parse GPT-5 response, using fallback');
+      console.warn('Failed to parse Claude response, using fallback');
       return extractKeywordsFallback(userFocus);
     }
   } catch (error) {
-    console.warn('GPT-5 not available, using fallback keyword extraction');
+    console.warn('Claude 4 Sonnet not available, using fallback keyword extraction');
     return extractKeywordsFallback(userFocus);
   }
-};
-
-/**
- * Legacy function - now redirects to GPT-5 for consistency
- */
-export const extractKeywordsWithClaudeSonnet = async (userFocus: string): Promise<ExtractedKeywords> => {
-  // Redirect to GPT-5 to avoid calling Claude Sonnet 4
-  return extractKeywordsWithGPT5(userFocus);
 };
 
 /**
@@ -390,7 +380,7 @@ export const processMultipleSourcesWithAI = async (
   summary: string;
   keywords: string[];
 }> => {
-  const extractedKeywords = await extractKeywordsWithGPT5(userFocus);
+  const extractedKeywords = await extractKeywordsWithClaudeSonnet(userFocus);
   const allKeywords = [...extractedKeywords.keywords, ...extractedKeywords.phrases];
 
   // Separate key points arrays
@@ -425,7 +415,7 @@ export const processMultipleSourcesWithAI = async (
   const dedupTranscription = deduplicateAIKeyPoints(transcriptKeyPoints);
   const dedupResources = deduplicateAIKeyPoints(webResourceKeyPoints);
 
-  const summary = `AI extracted ${dedupTranscription.length} key points from transcription and ${dedupResources.length} key points from web/resources using GPT-5 keyword analysis with Claude 4 Sonnet content extraction.`;
+  const summary = `AI extracted ${dedupTranscription.length} key points from transcription and ${dedupResources.length} key points from web/resources using Claude 4 Sonnet.`;
 
   return {
     transcriptKeyPoints: dedupTranscription,
@@ -549,9 +539,9 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
 };
 
 /**
- * Use GPT-5 to generate engaging headlines
+ * Use Claude 4 Sonnet to generate engaging headlines
  */
-export const generateHeadlineWithGPT5 = async (
+export const generateHeadlineWithClaudeSonnet = async (
   keyPoints: KeyPoint[],
   userFocus: string,
   storyDirection: StoryDirection,
@@ -559,7 +549,7 @@ export const generateHeadlineWithGPT5 = async (
 ): Promise<string> => {
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
   
-  const prompt = `You are an expert headline writer for major publications. Create a bold, creative, and attention-grabbing headline that captures the essence of this article.
+  const prompt = `You are an expert headline writer for major publications. Generate a compelling, engaging headline for an article based on the provided information.
 
 USER'S ARTICLE FOCUS & GOALS:
 "${userFocus}"
@@ -579,34 +569,37 @@ ${sources.map((source, index) =>
   `${index + 1}. ${source.title}`
 ).join('\n')}
 
-CREATIVE GUIDELINES:
-- Craft a headline that uniquely reflects the user's specific focus and goals
-- Let the chosen story angle naturally influence your creative approach
-- Be bold, memorable, and specific to this article's perspective
-- Avoid generic templates - make it fresh and powerful
-- Use your creative abilities to connect the user's focus with the key insights
-- Match the ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone} tone while being engaging
-- Keep it concise but impactful (ideally under 80 characters)
+HEADLINE REQUIREMENTS:
+1. Must be clear, specific, and attention-grabbing
+2. Should reflect both the user's focus and chosen story angle
+3. Keep it concise (under 80 characters for optimal readability)
+4. Use active voice and compelling language
+5. Connect to the most important key points
+6. Match the ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone} tone
+7. Align with the ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle} angle approach
+
+ANGLE GUIDELINES:
+- Success Story: Focus on achievements, growth, results
+- Challenges Overcome: Highlight transformation, resilience, solutions
+- Innovation Focus: Emphasize breakthrough, technology, future impact
+- Industry Analysis: Present insights, trends, implications
 
 Return only the headline text (no quotes, no JSON formatting).`;
 
   try {
     // Note: API keys should be provided via secure backend integration
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER', // Should be handled via backend
+        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER', // Should be handled via backend
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'gpt-5',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 200,
         temperature: 0.7,
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert headline writer for major publications.'
-          },
           {
             role: 'user',
             content: prompt
@@ -616,33 +609,20 @@ Return only the headline text (no quotes, no JSON formatting).`;
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Claude API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const headline = data.choices[0].message.content.trim();
+    const headline = data.content[0].text.trim();
     
     // Clean up any extra quotes or formatting
     return headline.replace(/^["']|["']$/g, '').trim();
   } catch (error) {
-    console.warn('GPT-5 headline generation not available, using fallback');
+    console.warn('Claude 4 Sonnet headline generation not available, using fallback');
     
     // Fallback headline generation
     return generateFallbackHeadline(keyPoints, userFocus, storyDirection);
   }
-};
-
-/**
- * Use Claude 4 Sonnet to generate engaging headlines (Legacy)
- */
-export const generateHeadlineWithClaudeSonnet = async (
-  keyPoints: KeyPoint[],
-  userFocus: string,
-  storyDirection: StoryDirection,
-  sources: Source[]
-): Promise<string> => {
-  // Redirect to GPT-5 for consistency
-  return generateHeadlineWithGPT5(keyPoints, userFocus, storyDirection, sources);
 };
 
 /**
@@ -869,26 +849,98 @@ Generate a compelling, well-structured article that transforms the key points in
 
 // ============= STEP 3: ARTICLE GENERATION (GPT-5) =============
 
-/**
- * Step 3: Use GPT-5 to generate a full draft article based on approved key points
- */
+// Define the GPT-5 headline generation function
+export const generateHeadlineWithGPT5 = async (
+  keyPoints: KeyPoint[],
+  userFocus: string,
+  storyDirection: StoryDirection,
+  sources: Source[]
+): Promise<string> => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+
+  const prompt = `You are a world-class creative headline writer. Generate a single, compelling, and highly creative headline for an article based on the provided information. Do not use a pre-defined story angle template. Instead, use your creative ability to craft a unique headline that captures the essence of the user's goals and story direction.
+
+USER'S ARTICLE FOCUS & GOALS:
+"${userFocus}"
+
+STORY DIRECTION:
+- Angle: ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}
+- Tone: ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}
+- Target Length: ${storyDirection.length}
+
+KEY POINTS TO FEATURE:
+${verifiedKeyPoints.slice(0, 5).map((point, index) =>
+  `${index + 1}. "${point.text}"`
+).join('\n')}
+
+SOURCES AVAILABLE:
+${sources.map((source, index) =>
+  `${index + 1}. ${source.title}`
+).join('\n')}
+
+HEADLINE REQUIREMENTS:
+1. Must be clear, specific, and highly creative.
+2. Should reflect both the user's focus and the chosen story angle.
+3. Be concise (under 80 characters for optimal readability).
+4. Use active voice and compelling language.
+5. Connect to the most important key points.
+6. Match the ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone} tone.
+7. Generate a headline that is imaginative and unique, not based on a standard template.
+
+Return only the headline text (no quotes, no JSON formatting).`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER', // Handle via backend
+      },
+      body: JSON.stringify({
+        model: 'gpt-5',
+        max_tokens: 200,
+        temperature: 0.8, // Increased temperature for more creativity
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const headline = data.choices[0].message.content.trim();
+  
+    return headline.replace(/^["']|["']$/g, '').trim();
+  } catch (error) {
+    console.warn('GPT-5 headline generation failed, using fallback');
+    return generateFallbackHeadline(keyPoints, userFocus, storyDirection);
+  }
+};
+
+// Main article generation function using the 3-step pipeline
 export const generateArticleWithGPT5 = async (
-  keyPoints: KeyPoint[],
-  sources: Source[],
-  transcript: string,
-  storyDirection: StoryDirection,
-  userFocus: string
+  keyPoints: KeyPoint[],
+  sources: Source[],
+  transcript: string,
+  storyDirection: StoryDirection,
+  userFocus: string
 ): Promise<DraftResult> => {
-  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
-  const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
-  
-  // First, generate the headline using GPT-5
-  const headline = await generateHeadlineWithGPT5(
-    keyPoints,
-    userFocus,
-    storyDirection,
-    sources
-  );
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
+  
+  // Step 1: Generate the headline using the new GPT-5 function
+  const headline = await generateHeadlineWithGPT5(
+    keyPoints,
+    userFocus,
+    storyDirection,
+    sources
+  );
   
   const prompt = `You are a skilled article writer. Generate a coherent, well-structured article that follows these specific rules:
 
