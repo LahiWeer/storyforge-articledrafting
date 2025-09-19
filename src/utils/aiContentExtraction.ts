@@ -620,8 +620,6 @@ Return only the headline text (no quotes, no JSON formatting).`;
   } catch (error) {
     console.warn('Claude 4 Sonnet headline generation not available, using fallback');
     
-    // Fallback headline generation
-    return generateFallbackHeadline(keyPoints, userFocus, storyDirection);
   }
 };
 
