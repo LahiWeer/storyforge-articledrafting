@@ -11,6 +11,7 @@ export interface AIExtractedKeyPoint {
 export interface ExtractedKeywords {
   keywords: string[];
   phrases: string[];
+  mainThemes: string[];
 }
 
 // ============= STEP 1: KEYWORD EXTRACTION (Claude 4 Sonnet) =============
@@ -107,8 +108,7 @@ const extractKeywordsFallback = (focus: string): ExtractedKeywords => {
   
   return {
     keywords: [...new Set(words)].slice(0, 15),
-    phrases: [...new Set(phrases)].slice(0, 10),
-    mainThemes: words.slice(0, 5)
+    phrases: [...new Set(phrases)].slice(0, 10)
   };
 };
 
