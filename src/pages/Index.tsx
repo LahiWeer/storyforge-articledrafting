@@ -106,17 +106,14 @@ const Index = () => {
       <section className="py-24" style={{
       backgroundColor: '#61a5c2'
     }}>
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-heading font-bold mb-6 text-secondary-foreground">
-            Ready to Transform Your Interviews?
-          </h2>
-          <p className="text-xl text-secondary-foreground/80 mb-8 max-w-2xl mx-auto">
-            Join journalists and content creators who trust our platform for 
-            accurate, engaging storytelling.
-          </p>
-          <Button size="lg" className="text-lg px-8 py-4 bg-primary hover:bg-primary-hover" onClick={() => setShowGenerator(true)}>
-            Get Started Now
-          </Button>
+        <div class="container mx-auto px-6 text-center" style="color: #5e548e;">
+          <h2 class="text-4xl font-heading font-bold mb-6 text-secondary-foreground">
+            Ready to Transform Your Interviews?
+          </h2>
+          <p class="text-xl text-secondary-foreground/80 mb-8 max-w-2xl mx-auto">
+            Join journalists and content creators who trust our platform for 
+            accurate, engaging storytelling.
+          </p>
         </div>
       </section>
     </div>;
