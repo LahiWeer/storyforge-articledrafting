@@ -305,26 +305,7 @@ const calculateFocusAlignment = (sentence: string, userFocus: string): number =>
   return Math.min(alignmentScore * 0.5, 3);
 };
 
-/**
- * Identify main theme from matched keywords
- */
-const getMainTheme = (sentence: string, matchedKeywords: string[]): string => {
-  // Simple theme detection based on keywords
-  const themes = {
-    'growth': ['growth', 'increase', 'expand', 'scale', 'develop'],
-    'technology': ['technology', 'AI', 'machine learning', 'innovation', 'digital'],
-    'users': ['user', 'customer', 'client', 'engagement', 'satisfaction'],
-    'business': ['revenue', 'profit', 'market', 'business', 'strategy'],
-    'team': ['team', 'employee', 'collaboration', 'workforce', 'hiring']
-  };
-  
-  for (const [theme, themeKeywords] of Object.entries(themes)) {
-    if (matchedKeywords.some(keyword => 
-      themeKeywords.some(themeWord => keyword.toLowerCase().includes(themeWord))
-    )) {
-      return theme;
-    }
-  }
+
   
   return matchedKeywords[0] || 'business insights';
 };
