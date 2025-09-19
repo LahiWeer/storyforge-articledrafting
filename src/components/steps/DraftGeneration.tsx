@@ -49,6 +49,7 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
   const [currentStep, setCurrentStep] = useState('');
   const [hasHeadlineChanges, setHasHeadlineChanges] = useState(false);
   const [tempHeadline, setTempHeadline] = useState(storyData.headline || '');
+  const [customInstructions, setCustomInstructions] = useState(storyData.storyDirection.customPrompt || '');
   const { toast } = useToast();
 
   const generateDraft = async () => {
@@ -78,11 +79,16 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
 
     try {
       // Generate AI-powered draft using Claude 4 Sonnet
+      const updatedStoryDirection = {
+        ...storyData.storyDirection,
+        customPrompt: customInstructions
+      };
+      
       const result = await generateArticleWithAI(
         storyData.keyPoints,
         storyData.sources,
         storyData.transcript,
-        storyData.storyDirection,
+        updatedStoryDirection,
         storyData.storyDirection.articleFocus || 'User-focused article based on provided key points and story direction'
       );
 
@@ -143,10 +149,15 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
     setIsRegeneratingHeadline(true);
     
     try {
+      const updatedStoryDirection = {
+        ...storyData.storyDirection,
+        customPrompt: customInstructions
+      };
+      
       const newHeadline = await generateHeadlineWithGemini(
         storyData.keyPoints,
         storyData.storyDirection.articleFocus || 'User-focused article based on provided key points and story direction',
-        storyData.storyDirection,
+        updatedStoryDirection,
         storyData.sources
       );
       
@@ -531,6 +542,37 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
           Review the preview below before proceeding to final review.
         </p>
       </div>
+
+      {/* Custom Instructions */}
+      <Card className="p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            <h3 className="text-xl font-semibold">Custom Instructions</h3>
+          </div>
+          <Badge variant="outline" className="text-xs">
+            Optional
+          </Badge>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="custom-instructions" className="text-sm font-medium text-muted-foreground">
+              Additional instructions for AI to follow when generating or regenerating the article
+            </label>
+            <Textarea
+              id="custom-instructions"
+              value={customInstructions}
+              onChange={(e) => setCustomInstructions(e.target.value)}
+              className="min-h-[100px] resize-none"
+              placeholder="e.g., 'Include specific examples from the healthcare industry', 'Focus on practical applications', 'Write for a technical audience', etc."
+            />
+            <div className="text-xs text-muted-foreground">
+              These instructions will be incorporated when generating or regenerating the article draft.
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Headline Editor */}
       <Card className="p-6 mb-6">
