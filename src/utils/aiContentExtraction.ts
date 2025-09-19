@@ -306,9 +306,6 @@ const calculateFocusAlignment = (sentence: string, userFocus: string): number =>
 };
 
 
-  
-  return matchedKeywords[0] || 'business insights';
-};
 
 /**
  * Fallback extraction using keyword matching
