@@ -603,7 +603,11 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
             <div 
               className="whitespace-pre-wrap font-editorial text-base leading-relaxed"
               dangerouslySetInnerHTML={{ 
-                __html: storyData.draft.replace(/\n/g, '<br />').replace(/#{1,6}/g, '') 
+                __html: storyData.draft
+                  .replace(/\n/g, '<br />')
+                  .replace(/^# (.+)/gm, '<h1 class="text-2xl font-bold mb-4 font-heading">$1</h1>')
+                  .replace(/^## (.+)/gm, '<h2 class="text-xl font-semibold mb-3">$1</h2>')
+                  .replace(/^### (.+)/gm, '<h3 class="text-lg font-medium mb-2">$1</h3>')
               }}
             />
           </div>
