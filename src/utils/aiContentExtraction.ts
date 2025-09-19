@@ -80,7 +80,7 @@ Extract 8-15 keywords and 5-10 key phrases that best represent the user's desire
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'GEMINI_API_KEY_PLACEHOLDER'
+        'x-api-key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
       },
       body: JSON.stringify({
         contents: [
@@ -201,7 +201,7 @@ Relevance scores should be 1-10 based on how well the key point aligns with the 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'GEMINI_API_KEY_PLACEHOLDER'
+        'x-api-key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
       },
       body: JSON.stringify({
         contents: [
@@ -350,7 +350,7 @@ Return only the headline text (no quotes, no JSON formatting).`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'GEMINI_API_KEY_PLACEHOLDER'
+        'x-api-key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
       },
       body: JSON.stringify({
         contents: [
@@ -506,7 +506,7 @@ Focus on producing a coherent, engaging, and readable article rather than a list
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'GEMINI_API_KEY_PLACEHOLDER'
+        'x-api-key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
       },
       body: JSON.stringify({
         contents: [
