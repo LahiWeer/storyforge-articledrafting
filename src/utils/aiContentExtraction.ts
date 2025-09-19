@@ -11,6 +11,7 @@ export interface AIExtractedKeyPoint {
 export interface ExtractedKeywords {
   keywords: string[];
   phrases: string[];
+  mainThemes: string[];
 }
 
 // ============= STEP 1: KEYWORD EXTRACTION (Claude 4 Sonnet) =============
@@ -285,6 +286,28 @@ const simulateClaudeAnalysis = async (
   return analysisResults
     .sort((a, b) => b.relevanceScore - a.relevanceScore)
     .slice(0, 6);
+};
+
+/**
+ * Extract the main theme from a sentence based on matched keywords
+ */
+const getMainTheme = (sentence: string, matchedKeywords: string[]): string => {
+  if (matchedKeywords.length === 0) return 'general insights';
+  
+  // Find the most relevant keyword based on sentence context
+  const mainKeyword = matchedKeywords[0];
+  const sentenceLower = sentence.toLowerCase();
+  
+  // Simple heuristic to determine theme context
+  if (sentenceLower.includes('grow') || sentenceLower.includes('increase')) {
+    return `${mainKeyword} growth strategies`;
+  } else if (sentenceLower.includes('challenge') || sentenceLower.includes('problem')) {
+    return `${mainKeyword} challenges`;
+  } else if (sentenceLower.includes('success') || sentenceLower.includes('achieve')) {
+    return `${mainKeyword} success factors`;
+  } else {
+    return `${mainKeyword} insights`;
+  }
 };
 
 /**
