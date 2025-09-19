@@ -812,16 +812,19 @@ Generate a compelling, well-structured article that transforms the key points in
 
 // ============= STEP 3: ARTICLE GENERATION (GPT-5) =============
 
-// Define the GPT-5 headline generation function
+// Function to generate headline with GPT-5
 export const generateHeadlineWithGPT5 = async (
-  keyPoints: KeyPoint[],
-  userFocus: string,
-  storyDirection: StoryDirection,
-  sources: Source[]
+  keyPoints: KeyPoint[],
+  userFocus: string,
+  storyDirection: StoryDirection,
+  sources: Source[]
 ): Promise<string> => {
-  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  // Define a simple, static fallback headline since angleTemplates are removed.
+  const simpleFallbackHeadline = `Insights on ${userFocus}`;
 
-  const prompt = `You are a world-class creative headline writer. Generate a single, compelling, and highly creative headline for an article based on the provided information. Do not use a pre-defined story angle template. Instead, use your creative ability to craft a unique headline that captures the essence of the user's goals and story direction.
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+
+  const prompt = `You are a world-class creative headline writer. Generate a single, compelling, and highly creative headline for an article based on the provided information. Do not use a pre-defined story angle template. Instead, use your creative ability to craft a unique headline that captures the essence of the user's goals and story direction.
 
 USER'S ARTICLE FOCUS & GOALS:
 "${userFocus}"
@@ -833,12 +836,12 @@ STORY DIRECTION:
 
 KEY POINTS TO FEATURE:
 ${verifiedKeyPoints.slice(0, 5).map((point, index) =>
-  `${index + 1}. "${point.text}"`
+  `${index + 1}. "${point.text}"`
 ).join('\n')}
 
 SOURCES AVAILABLE:
 ${sources.map((source, index) =>
-  `${index + 1}. ${source.title}`
+  `${index + 1}. ${source.title}`
 ).join('\n')}
 
 HEADLINE REQUIREMENTS:
@@ -852,38 +855,39 @@ HEADLINE REQUIREMENTS:
 
 Return only the headline text (no quotes, no JSON formatting).`;
 
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER', // Handle via backend
-      },
-      body: JSON.stringify({
-        model: 'gpt-5',
-        max_tokens: 200,
-        temperature: 0.8, // Increased temperature for more creativity
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
-    });
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER',
+      },
+      body: JSON.stringify({
+        model: 'gpt-5',
+        max_tokens: 200,
+        temperature: 0.8,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
 
-    const data = await response.json();
-    const headline = data.choices[0].message.content.trim();
-  
-    return headline.replace(/^["']|["']$/g, '').trim();
-  } catch (error) {
-    console.warn('GPT-5 headline generation failed, using fallback');
-    return generateFallbackHeadline(keyPoints, userFocus, storyDirection);
-  }
+    const data = await response.json();
+    const headline = data.choices[0].message.content.trim();
+
+    return headline.replace(/^["']|["']$/g, '').trim();
+  } catch (error) {
+    console.warn('GPT-5 headline generation failed, using fallback');
+    // Replaced the original fallback function call with a simpler, direct return.
+    return simpleFallbackHeadline;
+  }
 };
 
 // Main article generation function using the 3-step pipeline
