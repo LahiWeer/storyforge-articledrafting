@@ -301,7 +301,7 @@ export const KeyPointsReview = ({
           Review Key Points
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
-          Claude 4 Sonnet analyzed your focus "{articleFocus}" and extracted {keyPoints.length} highly relevant key insights ({transcriptPoints.length} from transcript, {sourcePoints.length} from sources). 
+          We analyzed your focus "{articleFocus}" and extracted {keyPoints.length} highly relevant key insights ({transcriptPoints.length} from transcript, {sourcePoints.length} from sources). 
           Each key point contains at least one matching keyword and is strictly aligned with your article goals.
         </p>
         
