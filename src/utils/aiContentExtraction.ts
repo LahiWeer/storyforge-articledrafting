@@ -537,7 +537,6 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
   
   return quotes;
 
-
 // ============= STEP 3: ARTICLE GENERATION (GPT-5) =============
 
 /**
