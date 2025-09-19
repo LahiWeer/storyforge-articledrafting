@@ -8,10 +8,11 @@ export interface AIExtractedKeyPoint {
   reasoning: string;
 }
 
+// Fixed ExtractedKeywords interface to include mainThemes
 export interface ExtractedKeywords {
   keywords: string[];
   phrases: string[];
-  
+  mainThemes: string[];
 }
 
 // ============= STEP 1: KEYWORD EXTRACTION (Claude 4 Sonnet) =============
@@ -43,13 +44,11 @@ FORMAT YOUR RESPONSE AS JSON:
 Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent the user's desired focus.`;
 
   try {
-    // Note: API keys should be provided via secure backend integration
-    // This is a placeholder for demonstration - in production, use secure backend proxy
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER', // Should be handled via backend
+        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER',
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
@@ -167,12 +166,11 @@ FORMAT YOUR RESPONSE AS JSON:
 Relevance scores should be 1-10 based on how well the key point aligns with the user's focus and includes important keywords.`;
 
   try {
-    // Note: API keys should be provided via secure backend integration
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER', // Should be handled via backend
+        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER',
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
@@ -242,10 +240,8 @@ const simulateClaudeAnalysis = async (
   keywords: string[],
   source: string
 ): Promise<AIExtractedKeyPoint[]> => {
-  // Simulate AI processing delay
   await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // Intelligent content analysis simulation
   const sentences = content
     .split(/[.!?]+\s+/)
     .map(s => s.trim())
@@ -253,7 +249,6 @@ const simulateClaudeAnalysis = async (
   
   const analysisResults: AIExtractedKeyPoint[] = [];
   
-  // Simulate AI's intelligent analysis
   for (const sentence of sentences.slice(0, 8)) {
     const lowerSentence = sentence.toLowerCase();
     const matchedKeywords = keywords.filter(keyword => 
@@ -261,7 +256,6 @@ const simulateClaudeAnalysis = async (
     );
     
     if (matchedKeywords.length > 0) {
-      // AI would provide more sophisticated relevance scoring
       const baseScore = matchedKeywords.length * 2;
       const lengthBonus = Math.min(sentence.length / 100, 2);
       const focusAlignment = calculateFocusAlignment(sentence, userFocus);
@@ -282,7 +276,6 @@ const simulateClaudeAnalysis = async (
     }
   }
   
-  // Sort by relevance score and return top results
   return analysisResults
     .sort((a, b) => b.relevanceScore - a.relevanceScore)
     .slice(0, 6);
@@ -383,11 +376,9 @@ export const processMultipleSourcesWithAI = async (
   const extractedKeywords = await extractKeywordsWithClaudeSonnet(userFocus);
   const allKeywords = [...extractedKeywords.keywords, ...extractedKeywords.phrases];
 
-  // Separate key points arrays
   const transcriptKeyPoints: AIExtractedKeyPoint[] = [];
   const webResourceKeyPoints: AIExtractedKeyPoint[] = [];
 
-  // Process transcription
   if (transcript.trim()) {
     const points = await extractKeyPointsWithClaudeSonnet(
       transcript,
@@ -399,7 +390,6 @@ export const processMultipleSourcesWithAI = async (
     transcriptKeyPoints.push(...points);
   }
 
-  // Process web resources
   for (const source of sources) {
     const points = await extractKeyPointsWithClaudeSonnet(
       source.content,
@@ -411,7 +401,6 @@ export const processMultipleSourcesWithAI = async (
     webResourceKeyPoints.push(...points);
   }
 
-  // Deduplicate separately
   const dedupTranscription = deduplicateAIKeyPoints(transcriptKeyPoints);
   const dedupResources = deduplicateAIKeyPoints(webResourceKeyPoints);
 
@@ -425,7 +414,6 @@ export const processMultipleSourcesWithAI = async (
   };
 };
 
-
 /**
  * Remove duplicate key points using AI-enhanced similarity detection
  */
@@ -433,7 +421,6 @@ const deduplicateAIKeyPoints = (keyPoints: AIExtractedKeyPoint[]): AIExtractedKe
   const unique: AIExtractedKeyPoint[] = [];
   const seen = new Set<string>();
   
-  // Sort by relevance score first
   const sorted = [...keyPoints].sort((a, b) => b.relevanceScore - a.relevanceScore);
   
   for (const point of sorted) {
@@ -441,7 +428,6 @@ const deduplicateAIKeyPoints = (keyPoints: AIExtractedKeyPoint[]): AIExtractedKe
     const words = normalized.split(/\s+/).filter(w => w.length > 3);
     const fingerprint = words.slice(0, 5).join(' ');
     
-    // Check for similar content (simple similarity check)
     let isDuplicate = false;
     for (const seenText of seen) {
       const similarity = calculateSimilarity(fingerprint, seenText);
@@ -512,13 +498,11 @@ export interface DraftResult {
 const extractQuotesFromTranscript = (transcript: string, storyAngle: string): string[] => {
   if (!transcript || transcript.length < 50) return [];
   
-  // Split transcript into sentences and find quotable segments
   const sentences = transcript
     .split(/[.!?]+\s+/)
     .map(s => s.trim())
     .filter(s => s.length > 20 && s.length < 150);
   
-  // Filter sentences that make good quotes based on story angle
   const quotablePatterns = {
     'success-story': ['grew', 'increased', 'achieved', 'success', 'results', 'momentum'],
     'challenges-overcome': ['challenge', 'obstacle', 'overcome', 'solution', 'learned', 'adapt'],
@@ -533,12 +517,87 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
       const lowerSentence = sentence.toLowerCase();
       return patterns.some(pattern => lowerSentence.includes(pattern));
     })
-    .slice(0, 3); // Get top 3 potential quotes
+    .slice(0, 3);
   
   return quotes;
-}; 
+};
 
 // ============= STEP 3: ARTICLE GENERATION (GPT-5) =============
+
+/**
+ * Generates a creative headline for an article using GPT-5.
+ */
+export const generateHeadlineWithGPT5 = async (
+  keyPoints: KeyPoint[],
+  userFocus: string,
+  storyDirection: StoryDirection,
+  sources: Source[]
+): Promise<string> => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  const fallbackHeadline = `Insights on ${userFocus}`;
+
+  const keyPointsSummary = verifiedKeyPoints.slice(0, 5).map(point => point.text).join('\n');
+  const sourceTitles = sources.map(source => source.title).join(', ');
+
+  const prompt = `You are a world-class creative headline writer. Generate a single, compelling, and highly creative headline for an article based on the following information. Do not use a pre-defined story angle template. Instead, use your creative ability to craft a unique headline that captures the essence of the user's goals, story direction, and the key points.
+
+USER'S ARTICLE FOCUS & GOALS:
+"${userFocus}"
+
+STORY DIRECTION:
+- Angle: ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}
+- Tone: ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}
+- Target Length: ${storyDirection.length}
+
+KEY POINTS TO FEATURE:
+${keyPointsSummary}
+
+SOURCES AVAILABLE:
+${sourceTitles}
+
+HEADLINE REQUIREMENTS:
+1. Must be clear, specific, and highly creative.
+2. Should reflect the user's focus and the chosen story angle.
+3. Keep it concise (under 80 characters).
+4. Use active voice and compelling language.
+5. Connect to the most important key points.
+6. Match the ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone} tone.
+7. Be imaginative and unique, not based on a standard template.
+
+Return only the headline text (no quotes, no JSON formatting).`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER',
+      },
+      body: JSON.stringify({
+        model: 'gpt-5', // Assuming gpt-5 is available
+        max_tokens: 200,
+        temperature: 0.8,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const headline = data.choices[0].message.content.trim();
+    return headline.replace(/^["']|["']$/g, '').trim();
+  } catch (error) {
+    console.warn('GPT-5 headline generation failed, using fallback.');
+    return fallbackHeadline;
+  }
+};
 
 /**
  * Step 3: Use GPT-5 to generate a full draft article based on approved key points
@@ -553,8 +612,8 @@ export const generateArticleWithGPT5 = async (
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
   const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
   
-  // First, generate the headline using Claude 4 Sonnet
-  const headline = await generateHeadlineWithClaudeSonnet(
+  // First, generate the headline using the new GPT5 function
+  const headline = await generateHeadlineWithGPT5(
     keyPoints,
     userFocus,
     storyDirection,
@@ -576,7 +635,7 @@ STORY DIRECTION:
 ${storyDirection.customPrompt ? `- Custom Instructions: ${storyDirection.customPrompt}` : ''}
 
 APPROVED KEY POINTS TO INCORPORATE:
-${verifiedKeyPoints.map((point, index) => 
+${verifiedKeyPoints.map((point, index) =>
   `${index + 1}. "${point.text}" (Source: ${point.source})`
 ).join('\n')}
 
@@ -584,58 +643,58 @@ AVAILABLE QUOTES FROM TRANSCRIPT:
 ${quotes.map((quote, index) => `${index + 1}. "${quote}"`).join('\n')}
 
 SOURCES TO REFERENCE:
-${sources.map((source, index) => 
+${sources.map((source, index) =>
   `${index + 1}. ${source.title} (${source.type})`
 ).join('\n')}
 
 ARTICLE WRITING RULES:
 
 1. HEADLINE:
-   - Create a bold, creative headline that reflects the article's focus input and the selected Story Angle
-   - Make it BOLD using **headline text** format
+    - Create a bold, creative headline that reflects the article's focus input and the selected Story Angle
+    - Make it BOLD using **headline text** format
 
 2. INTRODUCTION:
-   - Write a captivating introduction that hooks readers right away
-   - Avoid dry or generic openings
-   - Draw readers in immediately with creative, engaging content
+    - Write a captivating introduction that hooks readers right away
+    - Avoid dry or generic openings
+    - Draw readers in immediately with creative, engaging content
 
 3. FLOW:
-   - Ensure the article has a smooth, logical flow
-   - Each section should transition naturally into the next
-   - Avoid a list-like or disjointed feel
-   - Create seamless narrative progression from start to finish
+    - Ensure the article has a smooth, logical flow
+    - Each section should transition naturally into the next
+    - Avoid a list-like or disjointed feel
+    - Create seamless narrative progression from start to finish
 
 4. TONE:
-   - Use the selected Writing Tone (${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone})
-   - If multiple tones are selected, blend them seamlessly throughout the article
-   - Maintain consistency from headline to conclusion
+    - Use the selected Writing Tone (${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone})
+    - If multiple tones are selected, blend them seamlessly throughout the article
+    - Maintain consistency from headline to conclusion
 
 5. STORY ANGLE:
-   - Follow the chosen Story Angle (${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle})
-   - Use it to guide the framing and perspective of the entire article
-   - Incorporate the angle naturally into every section
+    - Follow the chosen Story Angle (${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle})
+    - Use it to guide the framing and perspective of the entire article
+    - Incorporate the angle naturally into every section
 
 6. KEY POINTS:
-   - You may rephrase, condense, or expand key points creatively
-   - Do not repeat them word-for-word
-   - Weave them naturally into the narrative without being mechanical
+    - You may rephrase, condense, or expand key points creatively
+    - Do not repeat them word-for-word
+    - Weave them naturally into the narrative without being mechanical
 
 7. QUOTES & MENTIONS:
-   - If transcript includes phrases like "in our interview…" or "we are going to tell…", rewrite them smoothly
-   - Attribute insights directly to specific person, company, or team (e.g., "In an interview with Mark Zuckerberg…")
-   - Quotes should feel natural and integrated, not dropped in mechanically
-   - Make attributions flow seamlessly within the narrative
+    - If transcript includes phrases like "in our interview…" or "we are going to tell…", rewrite them smoothly
+    - Attribute insights directly to specific person, company, or team (e.g., "In an interview with Mark Zuckerberg…")
+    - Quotes should feel natural and integrated, not dropped in mechanically
+    - Make attributions flow seamlessly within the narrative
 
 8. READER-CENTRIC:
-   - Keep focus on how the subject affects people, industries, or everyday life
-   - Frame content according to the story angle's perspective
-   - Make the content relevant and impactful for readers
+    - Keep focus on how the subject affects people, industries, or everyday life
+    - Frame content according to the story angle's perspective
+    - Make the content relevant and impactful for readers
 
 9. AVOID REPETITION:
-   - Do not overuse phrases like "this development reflects broader strategic initiatives"
-   - Vary word choice and enrich the narrative with synonyms, explanations, or examples
-   - Each paragraph should offer unique commentary and perspective
-   - Eliminate redundant information while preserving important details
+    - Do not overuse phrases like "this development reflects broader strategic initiatives"
+    - Vary word choice and enrich the narrative with synonyms, explanations, or examples
+    - Each paragraph should offer unique commentary and perspective
+    - Eliminate redundant information while preserving important details
 
 10. CREATIVITY + PROFESSIONALISM:
     - Balance engaging storytelling with clear, professional writing
@@ -663,12 +722,11 @@ FORMAT YOUR RESPONSE AS JSON:
 Focus on producing a coherent, engaging, and readable article rather than a list of points.`;
 
   try {
-    // Note: API keys should be provided via secure backend integration
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER', // Should be handled via backend
+        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER',
       },
       body: JSON.stringify({
         model: 'gpt-5',
@@ -709,14 +767,12 @@ Focus on producing a coherent, engaging, and readable article rather than a list
     }
   } catch (error) {
     console.warn('GPT-5 not available, using fallback article generation');
-    // Fallback to enhanced mock generation
     return generateEnhancedMockArticle(verifiedKeyPoints, sources, transcript, storyDirection, userFocus, quotes, headline);
   }
 };
 
 /**
  * Main article generation function using the 3-step pipeline
- * Legacy function name maintained for compatibility
  */
 export const generateArticleWithAI = async (
   keyPoints: KeyPoint[],
@@ -742,10 +798,8 @@ const generateEnhancedMockArticle = (
 ): DraftResult => {
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
   
-  // Use provided headline or generate one
-  const headline = providedHeadline || generateFallbackHeadline(verifiedKeyPoints, userFocus, storyDirection);
+  const headline = providedHeadline || `Insights on ${userFocus}`; // Use a simple fallback
   
-  // Generate article sections
   const introduction = generateIntroduction();
   const body = generateBody();
   const conclusion = generateConclusion();
@@ -788,59 +842,16 @@ const generateEnhancedMockArticle = (
       return 'The analysis of available information is ongoing, with comprehensive insights pending verification of key data points. Strategic development continues across multiple dimensions, with particular attention to market positioning and operational efficiency.';
     }
     
-    // Group key points thematically
-    const themes = groupKeyPointsByTheme();
-    const sections = [];
-    
-    for (const [themeName, points] of Object.entries(themes)) {
-      if (points.length === 0) continue;
-      
-      let section = `**${themeName}**\n\n`;
-      
-      for (const point of points) {
+    const bodyText = verifiedKeyPoints.map(point => {
         const attribution = point.type === 'transcript' ? 'According to the discussion' : `Based on ${point.source}`;
-        section += `${attribution}, ${point.text} This development reflects broader strategic initiatives that align with market opportunities and organizational capabilities.\n\n`;
-      }
-      
-      sections.push(section);
-    }
+        return `${attribution}, ${point.text} This development reflects broader strategic initiatives that align with market opportunities and organizational capabilities.`;
+    }).join('\n\n');
     
-    return sections.join('');
+    return bodyText;
   }
   
   function generateConclusion(): string {
     return `Looking ahead, these developments position the organization for continued growth and market leadership. The strategic framework established through these initiatives creates a foundation for adapting to future market dynamics while maintaining competitive advantages.\n\nThe implications extend beyond immediate business outcomes to broader questions of industry evolution and market positioning. As these strategies continue to evolve, they will likely influence best practices across the sector, demonstrating the value of comprehensive strategic thinking in an increasingly complex business environment.`;
-  }
-  
-  function groupKeyPointsByTheme(): Record<string, KeyPoint[]> {
-    const themes: Record<string, KeyPoint[]> = {
-      'Strategic Foundation': [],
-      'Growth and Performance': [],
-      'Innovation and Technology': [],
-      'Market Position': [],
-      'Operational Excellence': []
-    };
-    
-    for (const point of verifiedKeyPoints) {
-      const text = point.text.toLowerCase();
-      
-      if (text.includes('strategy') || text.includes('vision') || text.includes('plan')) {
-        themes['Strategic Foundation'].push(point);
-      } else if (text.includes('growth') || text.includes('revenue') || text.includes('performance')) {
-        themes['Growth and Performance'].push(point);
-      } else if (text.includes('innovation') || text.includes('technology') || text.includes('digital')) {
-        themes['Innovation and Technology'].push(point);
-      } else if (text.includes('market') || text.includes('customer') || text.includes('competitive')) {
-        themes['Market Position'].push(point);
-      } else {
-        themes['Operational Excellence'].push(point);
-      }
-    }
-    
-    // Remove empty themes
-    return Object.fromEntries(
-      Object.entries(themes).filter(([_, points]) => points.length > 0)
-    );
   }
   
   function generateSourceMapping(): Record<string, string[]> {
