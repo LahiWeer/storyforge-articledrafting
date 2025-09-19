@@ -117,6 +117,7 @@ export const StoryGenerator = () => {
           <StoryDirection
             direction={storyData.storyDirection}
             onDirectionChange={(storyDirection) => updateStoryData({ storyDirection })}
+            articleFocus={storyData.articleFocus}
           />
         );
       case 5:

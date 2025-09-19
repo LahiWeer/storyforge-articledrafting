@@ -11,7 +11,6 @@ interface StoryDirectionData {
   tone: string;
   angle: string;
   length: string;
-  articleFocus?: string;
   customPrompt?: string;
   customTone?: string;
   customAngle?: string;
@@ -20,6 +19,7 @@ interface StoryDirectionData {
 interface StoryDirectionProps {
   direction: StoryDirectionData;
   onDirectionChange: (direction: StoryDirectionData) => void;
+  articleFocus?: string; // Pass the existing focus from Key Points step
 }
 
 const toneOptions = [
@@ -47,7 +47,7 @@ const lengthOptions = [
   { value: 'in-depth', label: 'In-depth Feature', description: '1,200-2,000 words • 6-10 minutes read' },
 ];
 
-export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionProps) => {
+export const StoryDirection = ({ direction, onDirectionChange, articleFocus }: StoryDirectionProps) => {
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
   const [showCustomTone, setShowCustomTone] = useState(direction.tone === 'other');
   const [showCustomAngle, setShowCustomAngle] = useState(direction.angle === 'other');
@@ -81,36 +81,27 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
           Set Your Story Direction
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Define your article's focus, tone, angle, and approach. This will guide how your 
-          key points are woven into a compelling narrative with a creative headline.
+          Define your article's tone, angle, and approach. Your focus from the previous step 
+          will be used with these settings to create a compelling narrative and creative headline.
         </p>
       </div>
 
       <div className="grid gap-8">
-        {/* Article Focus */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Target className="w-5 h-5 text-primary" />
-            <h3 className="text-xl font-semibold">Article Focus & Goals</h3>
-          </div>
-          <p className="text-muted-foreground mb-6">
-            Describe what you want this article to accomplish and its main focus. This will help generate a compelling headline and guide the content direction.
-          </p>
-          
-          <div className="space-y-2">
-            <Label htmlFor="article-focus">What is the main focus and goal of your article?</Label>
-            <Textarea
-              id="article-focus"
-              value={direction.articleFocus || ''}
-              onChange={(e) => updateDirection({ articleFocus: e.target.value })}
-              placeholder="e.g., 'Showcase how this startup overcame major challenges to achieve success', 'Highlight innovative technology solutions that are transforming the industry', 'Tell the story of leadership transformation during crisis'..."
-              className="min-h-[120px]"
-            />
-            <p className="text-xs text-muted-foreground">
-              Be specific about your goals - this helps create a more targeted headline and article structure.
+        {/* Article Focus Display */}
+        {articleFocus && (
+          <Card className="p-6 bg-gradient-secondary border-secondary">
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="w-5 h-5 text-secondary-foreground" />
+              <h3 className="text-xl font-semibold text-secondary-foreground">Your Article Focus</h3>
+            </div>
+            <p className="text-secondary-foreground leading-relaxed">
+              {articleFocus}
             </p>
-          </div>
-        </Card>
+            <p className="text-xs text-secondary-foreground/70 mt-3">
+              This focus was set in the Key Points step and will be used with your story direction to create a compelling narrative.
+            </p>
+          </Card>
+        )}
 
         {/* Tone Selection */}
         <Card className="p-6">
@@ -272,8 +263,8 @@ export const StoryDirection = ({ direction, onDirectionChange }: StoryDirectionP
         <Card className="p-6 bg-gradient-secondary border-secondary">
           <h4 className="font-semibold mb-2 text-secondary-foreground">Story Direction Summary</h4>
           <div className="space-y-1 text-sm text-secondary-foreground">
-            {direction.articleFocus && (
-              <p><strong>Article Focus:</strong> {direction.articleFocus}</p>
+            {articleFocus && (
+              <p><strong>Article Focus:</strong> {articleFocus}</p>
             )}
             <p><strong>Tone:</strong> {toneOptions.find(t => t.value === direction.tone)?.label}</p>
             {direction.customTone && direction.tone === 'other' && (
