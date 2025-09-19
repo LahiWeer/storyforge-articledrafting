@@ -76,7 +76,7 @@ Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent
       const parsed = JSON.parse(aiResponse);
       return {
         keywords: parsed.keywords || [],
-        phrases: parsed.phrases || [],
+        phrases: parsed.phrases || []
       };
     } catch (parseError) {
       console.warn('Failed to parse Claude response, using fallback');
