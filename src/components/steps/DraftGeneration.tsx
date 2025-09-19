@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Sparkles, RefreshCw, Type } from 'lucide-react';
+import { FileText, Sparkles, RefreshCw, Type, Save } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { generateArticleWithAI, generateHeadlineWithGemini } from '@/utils/aiContentExtraction';
 
@@ -47,6 +47,8 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
   const [isRegeneratingHeadline, setIsRegeneratingHeadline] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
+  const [hasHeadlineChanges, setHasHeadlineChanges] = useState(false);
+  const [tempHeadline, setTempHeadline] = useState(storyData.headline || '');
   const { toast } = useToast();
 
   const generateDraft = async () => {
@@ -110,6 +112,33 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
     }
   };
 
+  const saveHeadline = () => {
+    // Update the article content by replacing any existing headline
+    let updatedDraft = storyData.draft;
+    
+    // If there's already a headline in the draft, replace it
+    const headlineRegex = /^#\s*.+$/m;
+    if (headlineRegex.test(updatedDraft)) {
+      updatedDraft = updatedDraft.replace(headlineRegex, `# ${tempHeadline}`);
+    } else {
+      // If no headline exists, add it at the beginning
+      updatedDraft = `# ${tempHeadline}\n\n${updatedDraft}`;
+    }
+    
+    onDraftGenerated(updatedDraft, storyData.sourceMapping, tempHeadline);
+    setHasHeadlineChanges(false);
+    
+    toast({
+      title: "Headline Saved",
+      description: "Your headline has been saved and the article has been updated.",
+    });
+  };
+
+  const handleHeadlineChange = (value: string) => {
+    setTempHeadline(value);
+    setHasHeadlineChanges(value !== storyData.headline);
+  };
+
   const regenerateHeadline = async () => {
     setIsRegeneratingHeadline(true);
     
@@ -121,12 +150,13 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
         storyData.sources
       );
       
-      onDraftGenerated(storyData.draft, storyData.sourceMapping, newHeadline);
+      setTempHeadline(newHeadline);
+      setHasHeadlineChanges(true);
       setIsRegeneratingHeadline(false);
       
       toast({
         title: "New headline generated",
-        description: "Your headline has been updated using Gemini 2.5 Flash",
+        description: "Review the headline and click Save to update your article",
       });
     } catch (error) {
       setIsRegeneratingHeadline(false);
@@ -143,6 +173,11 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
       generateDraft();
     }
   }, []);
+
+  useEffect(() => {
+    setTempHeadline(storyData.headline || '');
+    setHasHeadlineChanges(false);
+  }, [storyData.headline]);
 
   const generateMockDraft = (data: StoryData): string => {
     const { storyDirection, keyPoints, sources, transcript } = data;
@@ -516,20 +551,20 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
             </label>
             <Textarea
               id="headline"
-              value={storyData.headline || 'No headline generated'}
-              onChange={(e) => onDraftGenerated(storyData.draft, storyData.sourceMapping, e.target.value)}
+              value={tempHeadline}
+              onChange={(e) => handleHeadlineChange(e.target.value)}
               className="text-lg font-heading font-semibold min-h-[80px] resize-none"
               placeholder="Enter your article headline here..."
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Keep it under 80 characters for optimal readability</span>
-              <span className={`${(storyData.headline || '').length > 80 ? 'text-warning' : ''}`}>
-                {(storyData.headline || '').length}/80 characters
+              <span className={`${tempHeadline.length > 80 ? 'text-warning' : ''}`}>
+                {tempHeadline.length}/80 characters
               </span>
             </div>
           </div>
           
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-2">
             <Button
               variant="outline"
               onClick={regenerateHeadline}
@@ -539,6 +574,16 @@ export const DraftGeneration = ({ storyData, onDraftGenerated }: DraftGeneration
               <RefreshCw className={`w-4 h-4 ${isRegeneratingHeadline ? 'animate-spin' : ''}`} />
               {isRegeneratingHeadline ? 'Generating...' : 'Regenerate Headline'}
             </Button>
+            
+            {hasHeadlineChanges && (
+              <Button
+                onClick={saveHeadline}
+                className="flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Save Headline
+              </Button>
+            )}
           </div>
         </div>
       </Card>
