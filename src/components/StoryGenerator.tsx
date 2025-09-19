@@ -5,7 +5,6 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle, Circle, ArrowRight, ArrowLeft } from 'lucide-react';
 import { TranscriptInput } from './steps/TranscriptInput';
 import { SourcesAttachment } from './steps/SourcesAttachment';
-import { KeyPointsReview } from './steps/KeyPointsReview';
 import { StoryDirection } from './steps/StoryDirection';
 import { DraftGeneration } from './steps/DraftGeneration';
 import { ReviewExport } from './steps/ReviewExport';
