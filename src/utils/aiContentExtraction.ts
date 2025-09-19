@@ -132,7 +132,6 @@ USER'S ARTICLE FOCUS & GOALS:
 EXTRACTED KEYWORDS TO FOCUS ON:
 Keywords: ${extractedKeywords.keywords.join(', ')}
 Key Phrases: ${extractedKeywords.phrases.join(', ')}
-Main Themes: ${extractedKeywords.mainThemes.join(', ')}
 
 CONTENT TO ANALYZE (Source: ${source}, Type: ${sourceType}):
 "${content}"
@@ -221,8 +220,7 @@ export const extractKeyPointsWithAI = async (
   // Convert legacy keywords to new format
   const extractedKeywords: ExtractedKeywords = {
     keywords: keywords.filter(k => !k.includes(' ')),
-    phrases: keywords.filter(k => k.includes(' ')),
-    mainThemes: keywords.slice(0, 3)
+    phrases: keywords.filter(k => k.includes(' '))
   };
   
   return extractKeyPointsWithClaudeSonnet(content, source, userFocus, extractedKeywords, 'webResource');
