@@ -559,7 +559,7 @@ export const generateHeadlineWithGPT5 = async (
 ): Promise<string> => {
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
   
-  const prompt = `You are an expert headline writer for major publications. Generate a compelling, engaging headline for an article based on the provided information.
+  const prompt = `You are an expert headline writer for major publications. Create a bold, creative, and attention-grabbing headline that captures the essence of this article.
 
 USER'S ARTICLE FOCUS & GOALS:
 "${userFocus}"
@@ -579,20 +579,14 @@ ${sources.map((source, index) =>
   `${index + 1}. ${source.title}`
 ).join('\n')}
 
-HEADLINE REQUIREMENTS:
-1. Must be clear, specific, and attention-grabbing
-2. Should reflect both the user's focus and chosen story angle
-3. Keep it concise (under 80 characters for optimal readability)
-4. Use active voice and compelling language
-5. Connect to the most important key points
-6. Match the ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone} tone
-7. Align with the ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle} angle approach
-
-ANGLE GUIDELINES:
-- Success Story: Focus on achievements, growth, results
-- Challenges Overcome: Highlight transformation, resilience, solutions
-- Innovation Focus: Emphasize breakthrough, technology, future impact
-- Industry Analysis: Present insights, trends, implications
+CREATIVE GUIDELINES:
+- Craft a headline that uniquely reflects the user's specific focus and goals
+- Let the chosen story angle naturally influence your creative approach
+- Be bold, memorable, and specific to this article's perspective
+- Avoid generic templates - make it fresh and powerful
+- Use your creative abilities to connect the user's focus with the key insights
+- Match the ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone} tone while being engaging
+- Keep it concise but impactful (ideally under 80 characters)
 
 Return only the headline text (no quotes, no JSON formatting).`;
 
