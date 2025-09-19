@@ -107,7 +107,7 @@ const Index = () => {
       backgroundColor: '#61a5c2'
     }}>
         <div className="container mx-auto px-6 text-center" style={{ color: '#5e548e' }}>
-          <h2 className="text-4xl font-heading font-bold mb-6 text-secondary-foreground">
+          <h2 className="text-4xl font-heading font-bold mb-6" style={{ color: '#5e548e' }}>
             Ready to Transform Your Interviews?
           </h2>
           <p className="text-xl text-secondary-foreground/80 mb-8 max-w-2xl mx-auto">
