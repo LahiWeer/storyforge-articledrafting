@@ -539,9 +539,9 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
 };
 
 /**
- * Use Claude 4 Sonnet to generate engaging headlines
+ * Use GPT-5 to generate engaging headlines
  */
-export const generateHeadlineWithClaudeSonnet = async (
+export const generateHeadlineWithGPT5 = async (
   keyPoints: KeyPoint[],
   userFocus: string,
   storyDirection: StoryDirection,
@@ -588,18 +588,21 @@ Return only the headline text (no quotes, no JSON formatting).`;
 
   try {
     // Note: API keys should be provided via secure backend integration
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'ANTHROPIC_API_KEY_PLACEHOLDER', // Should be handled via backend
-        'anthropic-version': '2023-06-01'
+        'Authorization': 'Bearer OPENAI_API_KEY_PLACEHOLDER', // Should be handled via backend
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'gpt-5',
         max_tokens: 200,
         temperature: 0.7,
         messages: [
+          {
+            role: 'system',
+            content: 'You are an expert headline writer for major publications.'
+          },
           {
             role: 'user',
             content: prompt
@@ -609,20 +612,33 @@ Return only the headline text (no quotes, no JSON formatting).`;
     });
 
     if (!response.ok) {
-      throw new Error(`Claude API error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const headline = data.content[0].text.trim();
+    const headline = data.choices[0].message.content.trim();
     
     // Clean up any extra quotes or formatting
     return headline.replace(/^["']|["']$/g, '').trim();
   } catch (error) {
-    console.warn('Claude 4 Sonnet headline generation not available, using fallback');
+    console.warn('GPT-5 headline generation not available, using fallback');
     
     // Fallback headline generation
     return generateFallbackHeadline(keyPoints, userFocus, storyDirection);
   }
+};
+
+/**
+ * Use Claude 4 Sonnet to generate engaging headlines (Legacy)
+ */
+export const generateHeadlineWithClaudeSonnet = async (
+  keyPoints: KeyPoint[],
+  userFocus: string,
+  storyDirection: StoryDirection,
+  sources: Source[]
+): Promise<string> => {
+  // Redirect to GPT-5 for consistency
+  return generateHeadlineWithGPT5(keyPoints, userFocus, storyDirection, sources);
 };
 
 /**
@@ -862,8 +878,8 @@ export const generateArticleWithGPT5 = async (
   const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
   const quotes = extractQuotesFromTranscript(transcript, storyDirection.angle);
   
-  // First, generate the headline using Claude 4 Sonnet
-  const headline = await generateHeadlineWithClaudeSonnet(
+  // First, generate the headline using GPT-5
+  const headline = await generateHeadlineWithGPT5(
     keyPoints,
     userFocus,
     storyDirection,
