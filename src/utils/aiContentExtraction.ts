@@ -36,8 +36,7 @@ INSTRUCTIONS:
 FORMAT YOUR RESPONSE AS JSON:
 {
   "keywords": ["keyword1", "keyword2", "keyword3"],
-  "phrases": ["key phrase 1", "key phrase 2", "key phrase 3"],
-  "mainThemes": ["theme1", "theme2", "theme3"]
+  "phrases": ["key phrase 1", "key phrase 2", "key phrase 3"]
 }
 
 Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent the user's desired focus.`;
@@ -76,7 +75,8 @@ Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent
       const parsed = JSON.parse(aiResponse);
       return {
         keywords: parsed.keywords || [],
-        phrases: parsed.phrases || []
+        phrases: parsed.phrases || [],
+        mainThemes: parsed.mainThemes || []
       };
     } catch (parseError) {
       console.warn('Failed to parse Claude response, using fallback');
@@ -108,7 +108,8 @@ const extractKeywordsFallback = (focus: string): ExtractedKeywords => {
   
   return {
     keywords: [...new Set(words)].slice(0, 15),
-    phrases: [...new Set(phrases)].slice(0, 10)
+    phrases: [...new Set(phrases)].slice(0, 10),
+    mainThemes: words.slice(0, 5)
   };
 };
 
