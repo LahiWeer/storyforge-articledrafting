@@ -539,41 +539,6 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
 };
 
 /**
- * Generate fallback headline when AI fails
- */
-const generateFallbackHeadline = (
-  keyPoints: KeyPoint[],
-  userFocus: string,
-  storyDirection: StoryDirection
-): string => {
-  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
-  const firstKeyPoint = verifiedKeyPoints[0];
-  
-  if (!firstKeyPoint) {
-    return `${userFocus}: A ${storyDirection.angle.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
-  }
-  
-  // Extract main subject from key points or focus
-  const focusWords = userFocus.toLowerCase().split(/\s+/);
-  const importantWords = focusWords.filter(word => 
-    word.length > 3 && !['with', 'from', 'that', 'this', 'they', 'have', 'been'].includes(word)
-  );
-  
-  const mainSubject = importantWords[0] || 'Business';
-  
-  // Generate headline based on story angle
-  const angleTemplates = {
-    'success-story': `How ${mainSubject} Achieved Remarkable Growth`,
-    'challenges-overcome': `${mainSubject} Turns Obstacles Into Opportunities`,
-    'innovation-focus': `${mainSubject} Breaks New Ground in Innovation`,
-    'industry-analysis': `${mainSubject} Insights: What the Data Reveals`
-  };
-  
-  return angleTemplates[storyDirection.angle as keyof typeof angleTemplates] || 
-         `${mainSubject}: Key Insights and Developments`;
-};
-
-/**
  * Use Claude 4 Sonnet to generate a complete draft article
  */
 const generateArticleWithClaudeSonnet = async (
