@@ -12,9 +12,14 @@ import {
   AlertTriangle, 
   Quote,
   FileText,
-  Share
+  Share,
+  FileType,
+  File
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import jsPDF from 'jspdf';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface QuoteVerification {
   id: string;
@@ -216,6 +221,163 @@ ${storyData.keyPoints.map((point, index) =>
     });
   };
 
+  const exportAsPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add headline
+    if (storyData.headline) {
+      doc.setFontSize(18);
+      doc.setFont(undefined, 'bold');
+      const splitHeadline = doc.splitTextToSize(storyData.headline, 180);
+      doc.text(splitHeadline, 15, 20);
+    }
+    
+    // Add article content
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    const startY = storyData.headline ? 40 : 20;
+    const splitText = doc.splitTextToSize(storyData.draft, 180);
+    doc.text(splitText, 15, startY);
+    
+    // Add sources section
+    const sourcesY = startY + (splitText.length * 5) + 20;
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Source References', 15, sourcesY);
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    storyData.sources.forEach((source, index) => {
+      doc.text(`${index + 1}. ${source.title} (${source.type.toUpperCase()})`, 15, sourcesY + 10 + (index * 5));
+    });
+    
+    doc.save('story-draft.pdf');
+    
+    toast({
+      title: "Export successful",
+      description: "Your article has been downloaded as a PDF file",
+    });
+  };
+
+  const exportAsDocx = async () => {
+    const children = [];
+    
+    // Add headline
+    if (storyData.headline) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: storyData.headline,
+              bold: true,
+              size: 32,
+            }),
+          ],
+          spacing: { after: 400 },
+        })
+      );
+    }
+    
+    // Add article content
+    const paragraphs = storyData.draft.split('\n\n');
+    paragraphs.forEach(paragraph => {
+      if (paragraph.trim()) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: paragraph.trim(),
+                size: 24,
+              }),
+            ],
+            spacing: { after: 200 },
+          })
+        );
+      }
+    });
+    
+    // Add sources section
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "Source References",
+            bold: true,
+            size: 28,
+          }),
+        ],
+        spacing: { before: 400, after: 200 },
+      })
+    );
+    
+    storyData.sources.forEach((source, index) => {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `${index + 1}. ${source.title} (${source.type.toUpperCase()})`,
+              size: 20,
+            }),
+          ],
+          spacing: { after: 100 },
+        })
+      );
+    });
+    
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: children,
+        },
+      ],
+    });
+    
+    const buffer = await Packer.toBuffer(doc);
+    saveAs(new Blob([buffer]), 'story-draft.docx');
+    
+    toast({
+      title: "Export successful",
+      description: "Your article has been downloaded as a DOCX file",
+    });
+  };
+
+  const exportAsTxt = () => {
+    const headline = storyData.headline ? `${storyData.headline}\n\n` : '';
+    const content = `${headline}${storyData.draft}
+
+---
+
+SOURCE REFERENCES
+
+${storyData.sources.map((source, index) => 
+  `${index + 1}. ${source.title} (${source.type.toUpperCase()})`
+).join('\n')}
+
+KEY POINTS REFERENCE
+
+${storyData.keyPoints.map((point, index) => 
+  `${index + 1}. ${point.text} ${point.status === 'VERIFIED' ? '✓' : '⚠️'}`
+).join('\n')}
+
+---
+
+Generated with Story Generator • ${new Date().toLocaleDateString()}`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'story-draft.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export successful",
+      description: "Your article has been downloaded as a TXT file",
+    });
+  };
+
   const exportWithProvenance = () => {
     const provenance = {
       headline: storyData.headline,
@@ -389,7 +551,7 @@ ${storyData.keyPoints.map((point, index) =>
       {/* Export Options */}
       <Card className="p-6">
         <h3 className="text-xl font-semibold mb-4">Export Options</h3>
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           <Button
             onClick={exportAsMarkdown}
             className="flex items-center gap-2 h-auto p-4 justify-start"
@@ -397,9 +559,51 @@ ${storyData.keyPoints.map((point, index) =>
           >
             <FileText className="w-5 h-5" />
             <div className="text-left">
-              <p className="font-medium">Download Markdown</p>
+              <p className="font-medium">Markdown (.md)</p>
               <p className="text-xs text-muted-foreground">
                 Article with source references
+              </p>
+            </div>
+          </Button>
+          
+          <Button
+            onClick={exportAsPDF}
+            className="flex items-center gap-2 h-auto p-4 justify-start"
+            variant="outline"
+          >
+            <FileType className="w-5 h-5" />
+            <div className="text-left">
+              <p className="font-medium">PDF (.pdf)</p>
+              <p className="text-xs text-muted-foreground">
+                Formatted document
+              </p>
+            </div>
+          </Button>
+          
+          <Button
+            onClick={exportAsDocx}
+            className="flex items-center gap-2 h-auto p-4 justify-start"
+            variant="outline"
+          >
+            <File className="w-5 h-5" />
+            <div className="text-left">
+              <p className="font-medium">Word (.docx)</p>
+              <p className="text-xs text-muted-foreground">
+                Editable document
+              </p>
+            </div>
+          </Button>
+          
+          <Button
+            onClick={exportAsTxt}
+            className="flex items-center gap-2 h-auto p-4 justify-start"
+            variant="outline"
+          >
+            <FileText className="w-5 h-5" />
+            <div className="text-left">
+              <p className="font-medium">Plain Text (.txt)</p>
+              <p className="text-xs text-muted-foreground">
+                Simple text format
               </p>
             </div>
           </Button>
@@ -411,7 +615,7 @@ ${storyData.keyPoints.map((point, index) =>
           >
             <Download className="w-5 h-5" />
             <div className="text-left">
-              <p className="font-medium">Download with Provenance</p>
+              <p className="font-medium">With Provenance (.json)</p>
               <p className="text-xs text-muted-foreground">
                 Full source mapping & verification data
               </p>
