@@ -11,6 +11,7 @@ export interface AIExtractedKeyPoint {
 export interface ExtractedKeywords {
   keywords: string[];
   phrases: string[];
+  mainThemes: string[];
 }
 
 // ============= STEP 1: KEYWORD EXTRACTION (Claude 4 Sonnet) =============
@@ -76,7 +77,6 @@ Extract 8-15 keywords, 5-10 key phrases, and 3-5 main themes that best represent
       return {
         keywords: parsed.keywords || [],
         phrases: parsed.phrases || [],
-        mainThemes: parsed.mainThemes || []
       };
     } catch (parseError) {
       console.warn('Failed to parse Claude response, using fallback');
