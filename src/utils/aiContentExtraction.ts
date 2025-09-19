@@ -538,6 +538,228 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
   return quotes;
 };
 
+/**
+ * Generate fallback headline when AI fails
+ */
+const generateFallbackHeadline = (
+  keyPoints: KeyPoint[],
+  userFocus: string,
+  storyDirection: StoryDirection
+): string => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  const firstKeyPoint = verifiedKeyPoints[0];
+  
+  if (!firstKeyPoint) {
+    return `${userFocus}: A ${storyDirection.angle.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+  }
+  
+  // Extract main subject from key points or focus
+  const focusWords = userFocus.toLowerCase().split(/\s+/);
+  const importantWords = focusWords.filter(word => 
+    word.length > 3 && !['with', 'from', 'that', 'this', 'they', 'have', 'been'].includes(word)
+  );
+  
+  const mainSubject = importantWords[0] || 'Business';
+  
+  // Generate headline based on story angle
+  const angleTemplates = {
+    'success-story': `How ${mainSubject} Achieved Remarkable Growth`,
+    'challenges-overcome': `${mainSubject} Turns Obstacles Into Opportunities`,
+    'innovation-focus': `${mainSubject} Breaks New Ground in Innovation`,
+    'industry-analysis': `${mainSubject} Insights: What the Data Reveals`
+  };
+  
+  return angleTemplates[storyDirection.angle as keyof typeof angleTemplates] || 
+         `${mainSubject}: Key Insights and Developments`;
+};
+
+/**
+ * Use Claude 4 Sonnet to generate a complete draft article
+ */
+const generateArticleWithClaudeSonnet = async (
+  keyPoints: KeyPoint[],
+  sources: Source[],
+  transcript: string,
+  storyDirection: StoryDirection,
+  userFocus: string,
+  quotes: string[]
+): Promise<DraftResult> => {
+  const verifiedKeyPoints = keyPoints.filter(point => point.status === 'VERIFIED');
+  
+  // First, generate the headline using dedicated function
+  const headline = await generateHeadlineWithClaudeSonnet(
+    keyPoints,
+    userFocus,
+    storyDirection,
+    sources
+  );
+  
+  const prompt = `You are a professional journalist and content strategist. Generate a complete, publication-ready article based on the provided information.
+
+USER'S ARTICLE FOCUS & GOALS:
+"${userFocus}"
+
+HEADLINE TO USE:
+"${headline}"
+
+STORY DIRECTION:
+- Angle: ${storyDirection.angle === 'other' && storyDirection.customAngle ? storyDirection.customAngle : storyDirection.angle}
+- Tone: ${storyDirection.tone === 'other' && storyDirection.customTone ? storyDirection.customTone : storyDirection.tone}
+- Target Length: ${storyDirection.length}
+${storyDirection.customPrompt ? `- Custom Instructions: ${storyDirection.customPrompt}` : ''}
+
+VERIFIED KEY POINTS TO INCORPORATE:
+${verifiedKeyPoints.map((point, index) => 
+  `${index + 1}. "${point.text}" (Source: ${point.source})`
+).join('\n')}
+
+AVAILABLE QUOTES FROM TRANSCRIPT:
+${quotes.map((quote, index) => `${index + 1}. "${quote}"`).join('\n')}
+
+SOURCES TO REFERENCE:
+${sources.map((source, index) => 
+  `${index + 1}. ${source.title} (${source.type})`
+).join('\n')}
+
+ARTICLE STRUCTURE REQUIREMENTS:
+
+1. HEADLINE:
+   - Use the provided headline and make it BOLD using Markdown syntax (**headline text**)
+   - The headline must be clear, engaging, and reflect the user's focus and chosen Story Angle
+
+2. INTRODUCTION (1-2 paragraphs):
+   - Set context and introduce the main subject
+   - Explain why the topic matters to readers
+   - Establish the chosen story angle clearly
+   - Use smooth narrative flow from headline to content
+
+3. BODY (Thematic sections):
+   - Group related key points into meaningful themes
+   - Develop each theme into full paragraphs with explanation and context
+   - Use smooth transitions for cohesive narrative flow between all sections
+   - Each section should connect logically to the next
+   - Incorporate source references naturally with proper attribution
+   - Include 1-2 direct quotes from the transcript that flow naturally within the narrative
+
+4. CONCLUSION (1-2 paragraphs):
+   - Provide forward-looking commentary on significance
+   - Discuss implications or future outlook
+   - Avoid repetition of earlier points - must be unique commentary
+   - Connect back to broader context without redundancy
+
+WRITING QUALITY REQUIREMENTS:
+
+SMOOTH NARRATIVE FLOW:
+- Organize sections to connect logically (headline → introduction → body themes → conclusion)
+- Use transitional phrases between paragraphs and sections
+- Each section should flow naturally into the next
+- Avoid abrupt topic changes or jarring transitions
+
+REDUCE REPETITION & REDUNDANCY:
+- Avoid repeating the same closing sentences or phrases across paragraphs
+- Each paragraph must have unique commentary and perspective
+- Merge overlapping or repeated points to maintain conciseness
+- Eliminate redundant information while preserving important details
+- Each conclusion sentence must be distinct and add new insight
+
+STANDARDIZE ATTRIBUTIONS:
+- Use consistent attribution style throughout the article
+- Vary attribution phrases to avoid monotony
+- Examples: "According to [source]...", "As [person] described...", "[Team] revealed...", "The conversation highlighted..."
+- Maintain professional journalistic standards for all citations
+
+SIMPLIFY DENSE SENTENCES:
+- Rewrite overly technical or complex sentences for clarity
+- Maintain meaning while improving readability
+- Break down compound sentences when necessary
+- Use active voice where possible
+- Ensure accessibility for general audiences
+
+STORY ANGLE & TONE CONSISTENCY:
+- Maintain the chosen Story Angle (${storyDirection.angle}) throughout the entire article
+- Keep Writing Tone (${storyDirection.tone}) consistent from headline to conclusion
+- Ensure the article reads as an engaging, cohesive narrative
+- Avoid list-like structure - create flowing prose
+
+NATURAL SOURCE INTEGRATION:
+When incorporating points or quotes from the transcript, mention the source context naturally:
+- If transcript is from an interview: "During the interview, [person/team] explained..." or "[Person/Team] noted that..."
+- If transcript is from a meeting: "In the discussion, participants highlighted..." or "Team members emphasized..."
+- If transcript is from a presentation: "The speaker outlined..." or "[Name] presented..."
+- Do NOT insert quotes mechanically - they must flow naturally within the narrative
+- Integrate supporting sources (web links, PDFs, pasted content) smoothly within the text
+
+WRITING GUIDELINES:
+- Write in ${storyDirection.tone} tone consistently
+- Target approximately ${storyDirection.length === 'short' ? '400-600' : storyDirection.length === 'medium' ? '600-1000' : '1000-1500'} words
+- Use active voice and engaging language
+- Include specific details and evidence
+- Maintain journalistic credibility throughout
+- Connect general knowledge only when it clearly supports the key points
+- Ensure ALL key points are incorporated meaningfully
+- Create an engaging, cohesive narrative rather than a list of points
+
+FORMAT YOUR RESPONSE AS JSON:
+{
+  "draft": "Complete article content with proper paragraph breaks (use \\n\\n for paragraph separation)",
+  "sourceMapping": {
+    "paragraph_1": ["Source Name 1", "Source Name 2"],
+    "paragraph_2": ["Source Name 3"]
+  },
+  "wordCount": estimated_word_count,
+  "readTime": estimated_read_time_in_minutes
+}
+
+Generate a compelling, well-structured article that transforms the key points into an engaging narrative while maintaining journalistic integrity.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        temperature: 0.4,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.content[0].text;
+    
+    try {
+      const parsedResult = JSON.parse(aiResponse);
+      return {
+        draft: parsedResult.draft,
+        sourceMapping: parsedResult.sourceMapping || {},
+        headline: parsedResult.headline,
+        wordCount: parsedResult.wordCount || 800,
+        readTime: parsedResult.readTime || 4
+      };
+    } catch (parseError) {
+      console.warn('Failed to parse Claude response as JSON, using fallback');
+      throw parseError;
+    }
+  } catch (error) {
+    console.error('Claude 4 Sonnet article generation failed:', error);
+    // Fallback to enhanced mock generation
+    return generateEnhancedMockArticle(keyPoints, sources, transcript, storyDirection, userFocus, quotes);
+  }
+};
+
 // ============= STEP 3: ARTICLE GENERATION (GPT-5) =============
 
 /**
