@@ -44,7 +44,7 @@ Extract 8-15 keywords and 5-10 key phrases that best represent the user's desire
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'GEMINI_API_KEY_PLACEHOLDER'
+        'x-api-key': 'AIzaSyDgLYmvcn7phh27gpRAnPYjsZWK-2ivVkA'
       },
       body: JSON.stringify({
         contents: [
