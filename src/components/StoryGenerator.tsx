@@ -8,7 +8,7 @@ import { SourcesAttachment } from './steps/SourcesAttachment';
 import { KeyPointsReview } from './steps/KeyPointsReview';
 import { StoryDirection } from './steps/StoryDirection';
 import { DraftGeneration } from './steps/DraftGeneration';
-import { QuoteChecker } from './steps/QuoteChecker';
+
 import { ReviewExport } from './steps/ReviewExport';
 
 interface StoryData {
@@ -56,8 +56,7 @@ const steps = [
   { id: 3, title: 'Key Points', description: 'Review and approve extracted insights' },
   { id: 4, title: 'Direction', description: 'Set tone, angle, and story approach' },
   { id: 5, title: 'Draft', description: 'Generate your story-driven article' },
-  { id: 6, title: 'Quotes', description: 'Verify quotes against original transcript' },
-  { id: 7, title: 'Review', description: 'Finalize and export your article' },
+  { id: 6, title: 'Review', description: 'Verify quotes and finalize your article' },
 ];
 
 export const StoryGenerator = () => {
@@ -91,8 +90,6 @@ export const StoryGenerator = () => {
         return storyData.storyDirection.tone && storyData.storyDirection.angle;
       case 5:
         return storyData.draft.length > 0;
-      case 6:
-        return storyData.quoteVerifications !== undefined;
       default:
         return true;
     }
@@ -144,16 +141,6 @@ export const StoryGenerator = () => {
         );
       case 6:
         return (
-          <QuoteChecker
-            draft={storyData.draft}
-            transcript={storyData.transcript}
-            onVerificationComplete={(verifications) => 
-              updateStoryData({ quoteVerifications: verifications })
-            }
-          />
-        );
-      case 7:
-        return (
           <ReviewExport
             storyData={storyData}
             onDataUpdate={updateStoryData}
@@ -182,7 +169,7 @@ export const StoryGenerator = () => {
           <div className="mb-8">
             <Progress value={(currentStep / steps.length) * 100} className="mb-6" />
             
-            <div className="grid grid-cols-7 gap-4">
+            <div className="grid grid-cols-6 gap-4">
               {steps.map((step) => (
                 <div key={step.id} className="flex flex-col items-center text-center">
                   <div className="flex items-center justify-center w-10 h-10 rounded-full mb-2 transition-colors">

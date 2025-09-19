@@ -16,6 +16,16 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
+interface QuoteVerification {
+  id: string;
+  quotedText: string;
+  attribution: string;
+  originalSource: string | null;
+  isVerified: boolean;
+  matchType: 'exact' | 'partial' | 'paraphrased' | 'not_found';
+  confidence: number;
+}
+
 interface StoryData {
   transcript: string;
   sources: Array<{
@@ -39,7 +49,8 @@ interface StoryData {
   };
   draft: string;
   sourceMapping: Record<string, string[]>;
-  headline?: string; // Added headline field
+  headline?: string;
+  quoteVerifications?: QuoteVerification[];
 }
 
 interface ReviewExportProps {
@@ -48,44 +59,125 @@ interface ReviewExportProps {
 }
 
 export const ReviewExport = ({ storyData, onDataUpdate }: ReviewExportProps) => {
-  const [selectedQuote, setSelectedQuote] = useState<string>('');
   const [isCheckingQuotes, setIsCheckingQuotes] = useState(false);
-  const [quoteResults, setQuoteResults] = useState<Array<{
-    quote: string;
-    source: string;
-    verified: boolean;
-    snippet: string;
-  }>>([]);
   const { toast } = useToast();
 
   const runQuoteChecker = async () => {
     setIsCheckingQuotes(true);
     
-    // Simulate quote checking
-    setTimeout(() => {
-      const mockResults = [
-        {
-          quote: "user feedback in product development",
-          source: storyData.sources[0]?.title || "Source 1",
-          verified: true,
-          snippet: "The importance of user feedback in product development cannot be overstated..."
-        },
-        {
-          quote: "78% increase in customer satisfaction",
-          source: storyData.sources[0]?.title || "Source 1", 
-          verified: false,
-          snippet: "Customer satisfaction metrics showed significant improvement..."
-        },
-      ];
+    try {
+      const quotesInDraft = extractQuotesFromDraft(storyData.draft);
+      const verifications: QuoteVerification[] = [];
       
-      setQuoteResults(mockResults);
+      for (const quote of quotesInDraft) {
+        const verification = await verifyQuoteInTranscript(quote, storyData.transcript);
+        verifications.push({
+          id: Math.random().toString(36).substr(2, 9),
+          quotedText: quote.text,
+          attribution: quote.attribution,
+          originalSource: verification.originalSource,
+          isVerified: verification.isVerified,
+          matchType: verification.matchType,
+          confidence: verification.confidence,
+        });
+      }
+      
+      onDataUpdate({ quoteVerifications: verifications });
       setIsCheckingQuotes(false);
       
       toast({
         title: "Quote verification complete",
-        description: `${mockResults.filter(r => r.verified).length} of ${mockResults.length} quotes verified`,
+        description: `${verifications.filter(v => v.isVerified).length} of ${verifications.length} quotes verified`,
       });
-    }, 2000);
+    } catch (error) {
+      setIsCheckingQuotes(false);
+      toast({
+        title: "Error during quote verification",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const extractQuotesFromDraft = (draft: string) => {
+    const quotesRegex = /"([^"]+)"/g;
+    const quotes = [];
+    let match;
+    
+    while ((match = quotesRegex.exec(draft)) !== null) {
+      const quotedText = match[1];
+      const context = draft.substring(Math.max(0, match.index - 100), match.index + match[0].length + 100);
+      const attributionMatch = context.match(/(?:said|says|told|explained|noted|stated|according to)\s+([^,.]+)(?:[,.]|$)/i);
+      
+      quotes.push({
+        text: quotedText,
+        attribution: attributionMatch ? attributionMatch[1].trim() : 'Unknown',
+      });
+    }
+    
+    return quotes;
+  };
+
+  const verifyQuoteInTranscript = async (quote: { text: string; attribution: string }, transcript: string) => {
+    const cleanQuote = quote.text.toLowerCase().replace(/[^\w\s]/g, '');
+    const cleanTranscript = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+    
+    // Check for exact match
+    if (cleanTranscript.includes(cleanQuote)) {
+      const startIndex = cleanTranscript.indexOf(cleanQuote);
+      const originalSource = transcript.substring(
+        Math.max(0, startIndex - 50),
+        Math.min(transcript.length, startIndex + cleanQuote.length + 50)
+      );
+      
+      return {
+        isVerified: true,
+        matchType: 'exact' as const,
+        confidence: 1.0,
+        originalSource: originalSource.trim(),
+      };
+    }
+    
+    // Check for partial match
+    const quoteWords = cleanQuote.split(/\s+/);
+    const matchingWords = quoteWords.filter(word => cleanTranscript.includes(word));
+    const confidence = matchingWords.length / quoteWords.length;
+    
+    if (confidence >= 0.7) {
+      const contextSnippet = findBestMatch(quoteWords, transcript);
+      return {
+        isVerified: confidence >= 0.8,
+        matchType: confidence >= 0.8 ? 'partial' as const : 'paraphrased' as const,
+        confidence,
+        originalSource: contextSnippet,
+      };
+    }
+    
+    return {
+      isVerified: false,
+      matchType: 'not_found' as const,
+      confidence: 0,
+      originalSource: null,
+    };
+  };
+
+  const findBestMatch = (words: string[], transcript: string) => {
+    const sentences = transcript.split(/[.!?]+/);
+    let bestMatch = '';
+    let bestScore = 0;
+    
+    for (const sentence of sentences) {
+      const cleanSentence = sentence.toLowerCase().replace(/[^\w\s]/g, '');
+      const matchingWords = words.filter(word => cleanSentence.includes(word));
+      const score = matchingWords.length / words.length;
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = sentence.trim();
+      }
+    }
+    
+    return bestMatch || 'No matching context found';
   };
 
   const exportAsMarkdown = () => {
@@ -138,7 +230,7 @@ ${storyData.keyPoints.map((point, index) =>
       sources: storyData.sources,
       keyPoints: storyData.keyPoints,
       sourceMapping: storyData.sourceMapping,
-      quoteVerification: quoteResults,
+      quoteVerification: storyData.quoteVerifications || [],
     };
 
     const blob = new Blob([JSON.stringify(provenance, null, 2)], { type: 'application/json' });
@@ -156,8 +248,9 @@ ${storyData.keyPoints.map((point, index) =>
   };
 
   const getVerificationStats = () => {
-    const totalQuotes = quoteResults.length;
-    const verifiedQuotes = quoteResults.filter(r => r.verified).length;
+    const quoteVerifications = storyData.quoteVerifications || [];
+    const totalQuotes = quoteVerifications.length;
+    const verifiedQuotes = quoteVerifications.filter(v => v.isVerified).length;
     const unverifiedKeyPoints = storyData.keyPoints.filter(kp => kp.status !== 'VERIFIED').length;
     
     return { totalQuotes, verifiedQuotes, unverifiedKeyPoints };
@@ -229,35 +322,43 @@ ${storyData.keyPoints.map((point, index) =>
           Verify that quotes and specific claims in your article can be found in your sources
         </p>
 
-        {quoteResults.length > 0 && (
+        {storyData.quoteVerifications && storyData.quoteVerifications.length > 0 && (
           <div className="space-y-3">
-            {quoteResults.map((result, index) => (
-              <div key={index} className={`p-4 rounded-lg border ${
-                result.verified 
+            {storyData.quoteVerifications.map((verification) => (
+              <div key={verification.id} className={`p-4 rounded-lg border ${
+                verification.isVerified 
                   ? 'bg-success/5 border-success/20' 
                   : 'bg-warning/5 border-warning/20'
               }`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      {result.verified ? (
+                      {verification.isVerified ? (
                         <CheckCircle className="w-4 h-4 text-success" />
                       ) : (
                         <AlertTriangle className="w-4 h-4 text-warning" />
                       )}
                       <span className={`text-sm font-medium ${
-                        result.verified ? 'text-success' : 'text-warning'
+                        verification.isVerified ? 'text-success' : 'text-warning'
                       }`}>
-                        {result.verified ? 'VERIFIED' : 'NEEDS REVIEW'}
+                        {verification.isVerified ? 'VERIFIED' : 'NEEDS REVIEW'}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {verification.matchType.toUpperCase()}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {Math.round(verification.confidence * 100)}% confidence
                       </span>
                     </div>
-                    <p className="font-medium mb-1">"{result.quote}"</p>
+                    <p className="font-medium mb-1">"{verification.quotedText}"</p>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Source: {result.source}
+                      Attributed to: {verification.attribution}
                     </p>
-                    <p className="text-sm bg-background p-2 rounded border-l-4 border-l-muted">
-                      {result.snippet}
-                    </p>
+                    {verification.originalSource && (
+                      <p className="text-sm bg-background p-2 rounded border-l-4 border-l-muted">
+                        {verification.originalSource}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
