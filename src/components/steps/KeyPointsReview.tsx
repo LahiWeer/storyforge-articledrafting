@@ -838,3 +838,251 @@ const generateEnhancedMockArticle = (
     };
   }
 };
+
+// React imports
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, CheckCircle, XCircle, AlertCircle, Brain } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface KeyPointsReviewProps {
+  transcript: string;
+  sources: Source[];
+  keyPoints: KeyPoint[];
+  onKeyPointsChange: (keyPoints: KeyPoint[]) => void;
+  onArticleFocusChange: (articleFocus: string) => void;
+}
+
+export const KeyPointsReview: React.FC<KeyPointsReviewProps> = ({
+  transcript,
+  sources,
+  keyPoints,
+  onKeyPointsChange,
+  onArticleFocusChange
+}) => {
+  const [articleFocus, setArticleFocus] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [extractionComplete, setExtractionComplete] = useState(false);
+  const [hasExtracted, setHasExtracted] = useState(false);
+
+  const handleFocusChange = (value: string) => {
+    setArticleFocus(value);
+    onArticleFocusChange(value);
+  };
+
+  const handleExtractKeyPoints = async () => {
+    if (!articleFocus.trim()) {
+      toast.error('Please provide your article focus first');
+      return;
+    }
+
+    setIsLoading(true);
+    setHasExtracted(true);
+
+    try {
+      const result = await processMultipleSourcesWithAI(
+        sources,
+        transcript,
+        articleFocus,
+        5
+      );
+
+      const combinedKeyPoints: KeyPoint[] = [
+        ...result.transcriptKeyPoints.map((point, index) => ({
+          id: `transcript-${index}`,
+          text: point.text,
+          source: point.source,
+          status: 'UNVERIFIED' as const,
+          type: 'transcript' as const
+        })),
+        ...result.webResourceKeyPoints.map((point, index) => ({
+          id: `source-${index}`,
+          text: point.text,
+          source: point.source,
+          status: 'UNVERIFIED' as const,
+          type: 'source' as const
+        }))
+      ];
+
+      onKeyPointsChange(combinedKeyPoints);
+      setExtractionComplete(true);
+      toast.success(`Extracted ${combinedKeyPoints.length} key points successfully`);
+    } catch (error) {
+      console.error('Key point extraction failed:', error);
+      toast.error('Failed to extract key points. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateKeyPointStatus = (keyPointId: string, status: 'VERIFIED' | 'UNVERIFIED' | 'NEEDS REVIEW') => {
+    const updatedKeyPoints = keyPoints.map(point =>
+      point.id === keyPointId ? { ...point, status } : point
+    );
+    onKeyPointsChange(updatedKeyPoints);
+  };
+
+  const getStatusIcon = (status: KeyPoint['status']) => {
+    switch (status) {
+      case 'VERIFIED':
+        return <CheckCircle className="w-4 h-4 text-success" />;
+      case 'NEEDS REVIEW':
+        return <AlertCircle className="w-4 h-4 text-warning" />;
+      default:
+        return <XCircle className="w-4 h-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusColor = (status: KeyPoint['status']) => {
+    switch (status) {
+      case 'VERIFIED':
+        return 'bg-success/10 text-success border-success/20';
+      case 'NEEDS REVIEW':
+        return 'bg-warning/10 text-warning border-warning/20';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const verifiedCount = keyPoints.filter(point => point.status === 'VERIFIED').length;
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-heading font-semibold text-foreground mb-2">
+          Review Key Points
+        </h2>
+        <p className="text-muted-foreground">
+          We analyzed your focus and extracted relevant insights for your story
+        </p>
+      </div>
+
+      {/* Article Focus Input */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="w-5 h-5" />
+            Article Focus
+          </CardTitle>
+          <CardDescription>
+            Describe what you want your article to focus on. This helps us extract the most relevant key points.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="E.g., 'Focus on the business challenges and how the company overcame them to achieve growth'"
+            value={articleFocus}
+            onChange={(e) => handleFocusChange(e.target.value)}
+            className="min-h-[100px]"
+          />
+          <div className="flex justify-between items-center mt-4">
+            <div className="text-sm text-muted-foreground">
+              {articleFocus.length}/500 characters
+            </div>
+            <Button
+              onClick={handleExtractKeyPoints}
+              disabled={isLoading || !articleFocus.trim()}
+              className="flex items-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Extracting...
+                </>
+              ) : (
+                <>
+                  <Brain className="w-4 h-4" />
+                  {hasExtracted ? 'Re-extract' : 'Extract'} Key Points
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Key Points Review */}
+      {keyPoints.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Review Extracted Key Points</CardTitle>
+            <CardDescription>
+              Review and approve the key points we found. Only verified points will be used in your article.
+              <div className="mt-2">
+                <Badge variant="outline" className="text-success">
+                  {verifiedCount} Verified
+                </Badge>
+              </div>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {keyPoints.map((keyPoint) => (
+              <div
+                key={keyPoint.id}
+                className={`p-4 border rounded-lg transition-colors ${getStatusColor(keyPoint.status)}`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium mb-2">{keyPoint.text}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant="outline" className="text-xs">
+                        {keyPoint.source}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {keyPoint.type}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(keyPoint.status)}
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant={keyPoint.status === 'VERIFIED' ? 'default' : 'outline'}
+                        onClick={() => updateKeyPointStatus(keyPoint.id, 'VERIFIED')}
+                        className="text-xs"
+                      >
+                        Verify
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={keyPoint.status === 'NEEDS REVIEW' ? 'default' : 'outline'}
+                        onClick={() => updateKeyPointStatus(keyPoint.id, 'NEEDS REVIEW')}
+                        className="text-xs"
+                      >
+                        Review
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateKeyPointStatus(keyPoint.id, 'UNVERIFIED')}
+                        className="text-xs"
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Progress Summary */}
+      {keyPoints.length > 0 && (
+        <div className="text-center text-sm text-muted-foreground">
+          {verifiedCount > 0 ? (
+            <p>
+              ✅ {verifiedCount} key points verified and ready for story generation
+            </p>
+          ) : (
+            <p>Please verify at least one key point to continue</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
