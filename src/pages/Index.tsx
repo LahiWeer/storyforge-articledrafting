@@ -110,7 +110,7 @@ const Index = () => {
           <h2 className="text-4xl font-heading font-bold mb-6" style={{ color: '#5e548e' }}>
             Ready to Transform Your Interviews?
           </h2>
-          <p className="text-xl text-secondary-foreground/80 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl mb-8 max-w-2xl mx-auto" style={{ color: '#e5e5e5' }}>
             Join journalists and content creators who trust our platform for 
             accurate, engaging storytelling.
           </p>
