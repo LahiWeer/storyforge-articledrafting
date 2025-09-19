@@ -536,6 +536,7 @@ const extractQuotesFromTranscript = (transcript: string, storyAngle: string): st
     .slice(0, 3); // Get top 3 potential quotes
   
   return quotes;
+}; 
 
 // ============= STEP 3: ARTICLE GENERATION (GPT-5) =============
 
