@@ -1,0 +1,76 @@
+Exclusive interview: Inside Meta's AI glasses master plan
+Mark Zuckerberg on neural control, superintelligence, and AI coaching
+
+Good morning, AI enthusiasts. Meta just unveiled its most ambitious AI glasses lineup yet — including a new computing interface: Ray-Ban Displays with an internal screen and a Neural Band controller.
+
+We sat down for an exclusive interview with Mark Zuckerberg, founder and CEO of Meta, to explore how these glasses could replace your phone and what it means for humanity when AI can see everything we see.
+
+Cheung: Can you give us the rundown of everything you're announcing and what you're personally most excited about?
+
+Zuckerberg: We announced our fall 2025 line of glasses. Ray-Ban Meta now has doubled battery life, 3K video, and AI features like conversation focus that amplify friends' voices in loud places. The Oakley Meta Vanguard is built for athletes, water-resistant, louder speakers, Garmin connectivity.
+
+Zuckerberg added: But the most interesting thing by far is Ray-Ban Meta Display, the first glasses we've shipped with a high-resolution display paired with the Meta Neural Band, which is the first mainstream neural interface. You can send signals from your brain with micro muscle movements like this [gestures subtly]. It's a big breakthrough.
+
+Cheung: So you've got Ray-Bans for everyday, Oakleys for athletes, and displays for power users. How do all these glasses tie into that personal superintelligence vision?
+
+Zuckerberg: Our theory is that glasses are the ideal form factor for personal superintelligence because it's the only device that can see what you see, hear what you hear, talk to you throughout the day, and generate a UI in your vision in real time.
+
+Why it matters: Meta is betting everything on glasses as the final form factor for AI — solving what killed Google Glass by making wearables people actually want to wear. With the Neural Band reading muscle signals before you visibly move, users gain hands-free control for things like texting, GPS navigation, and AI interaction.
+
+Cheung: I got to try the Ray-Ban Displays. The moment that got me was the GPS navigation. What's the feature you use that you think no one's expecting?
+
+Zuckerberg: Sending messages. With the glasses, a friend texts you, it shows up in the corner of your eye for a few seconds... If you want to respond, it's as easy as moving your finger. I'm up to 30 words a minute typing with neural text. You can be having a conversation and continue to pay attention to the person with just a very quick gesture with your wrist.
+
+Cheung: The wristband reads electrical signals before you even move. Why is that more important than just improving voice commands or adding more buttons?
+
+Zuckerberg: A lot of the time, you're around other people. You want a way to control your computing device that is private, discreet, and subtle. With the neural band, we could be having this conversation, I get a message, and in the time it takes to breathe, I've sent a ten-word response.
+
+Cheung: Looking ahead, typing and speaking might not be enough to interact with AI. Do you see the band as the first step toward entirely new interfaces?
+
+Zuckerberg: The neural band is going to personalize to you over time. You'll co-evolve with it to make increasingly subtle movements where it's not picking up motion, it's picking up your muscles firing. Eventually, you'll be able to control the UI with your hand at your side, in a jacket pocket, behind your back.
+
+Why it matters: Meta's Neural Band is the first consumer neural interface that detects muscle signals before visible movement, a new way to interact with tech (and may eventually make keyboards/screens feel ancient). While it takes time to learn, the band personalizes to your unique patterns over time — becoming smarter and easier to use.
+
+Cheung: How far away are we from these glasses being good enough that you'd give up your phone?
+
+Zuckerberg: “Think about your main computing device. Phones are my main device, but I didn't get rid of my computer; I just use it less. Even at my desk, if I want to do something, I take out my phone. That's what's going to happen here.
+
+Zuckerberg added: Our phones will stay in our pockets more. I don't look at my phone to see the time anymore, just tap the glasses. I don't take out my phone for messages. With the viewfinder, I know exactly what I'm capturing.
+
+Cheung: How much of the metaverse vision is still alive in these products?
+
+Zuckerberg: We're getting closer to it. The Orion prototype has a wider field of view for holograms. This product's monocular, so it's not putting 3D objects in the world yet. But the vision is all the immersive software we have for VR, we want running on glasses too.
+
+Why it matters: Meta's glasses strategy is working backwards from the future — starting with simple, useful features before full AR holograms. With original Ray-Ban Metas already dominating stores and Display glasses introducing neural input, Meta is slowly creating the behavioral shift where phones stay in pockets more.
+
+Cheung: How did you build these with athletes in mind?
+
+Zuckerberg: A lot of people on the team are pretty intense athletes. I've fried multiple pairs of Ray-Bans taking them surfing... So we made these water-resistant. The extra sound is really helpful when you're cycling at 30 miles an hour in the wind. The other day I was taking a call on a jet ski and could hear perfectly over the engine.
+
+Cheung: Why did you think it was important to design glasses for super different lifestyles? How much broader do you expect to go?
+
+Zuckerberg: People have different styles. This isn't like a phone where everyone accepts having the same thing with a different color case. Glasses are part of our identity. Some people prefer thinner frames, some thicker.
+
+Zuckerberg added: There are somewhere between 1 to 2B people who have glasses for vision correction today. Within 5 to 7 years, is there any world where those aren't all replaced with smart glasses? It’s like when the iPhone came out and everyone had flip phones — just a matter of time.
+
+Cheung: The Garmin integration means AI can see your heart rate, pace, location, all hands-free while training. How long before it's giving everyone real-time coaching?
+
+Zuckerberg: It can do that a bit now. If you want to ask what your heart rate or pace is, it can answer. When I'm running for performance, I don't really want to talk to something. That's why we built the LED, a simple visual indicator of whether you're on your pace target or heart rate target.
+
+Why it matters: With the Oakley Meta Vanguards, athletes get a glimpse of augmented performance — with AI features enhancing the wearer’s flow without interrupting it. With light touches like Garmin/Strava integrations and visual LED cues, the tech disappears into the experience to provide value without demanding attention.
+
+Cheung: You're building superintelligence while raising three kids. What conversations are you having with them about the world they're growing up in?
+
+Zuckerberg: In our family, we build a lot of robots. My daughters are really into 3D printing. There's not much kids can do with developing AI at their age, but they can make stuff. We're designing our own robots, 3D printing the shell, using Raspberry Pi or Jetson to run language models.
+
+Zuckerberg added: I mostly try to teach our kids to be good people. Being caring and kind is really important. But intellectually, I believe in a depth-first approach. You learn a lot by building a robot, decomposing problems, debugging things. You learn by doing.
+
+Zuckerberg added: Sometimes we build robots, sometimes we watch K-pop, you gotta have fun.
+
+Cheung: When we do achieve superintelligence, these AI glasses will know everything we see, hear, even our muscle impulses. What human abilities should we fight to preserve, and which ones should we just let go?
+
+Zuckerberg: I'm not sure they're going to retain everything… Picking out the salient bits and giving people control is important. But to me, creativity is very important, having a sense of what you want to make in the world. Part of the job of a creator is to be a master of the tools available to them. AI systems have no impulse to create — they sit there waiting for directions.
+
+Zuckerberg added: The human piece is going to be: what do we want to do to make the world better? Some of that will be personal creative manifestation, but we probably underplay caring about other people, taking care of people, spreading kindness. That stuff is really important too.
+
+Why it matters: In a world where humans are increasingly embedding AI in our lives, Zuckerberg sees a future where humanity isn't competing with AI, but co-evolving with it. As we delegate more cognitive tasks, uniquely human traits like creativity, empathy, and the drive to improve the world become not obsolete, but essential.
